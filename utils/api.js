@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// 🌐 আপনার ভার্সেলে ডেপ্লয় করা রিয়েল সার্ভার ইউআরএল
+// ভার্সেলে ডেপ্লয় করা রিয়েল সার্ভার ইউআরএল
 const API_BASE_URL = "https://pre-owned-server-seven.vercel.app"; 
 
 const api = axios.create({

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, MapPin, Calendar, Layers, Smartphone, Laptop, Watch, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import BookingModal from "@/components/BookingModal";
-import api from "@/utils/api"; // 👈 আমাদের তৈরি করা ডাইনামিক এপিআই ইনস্ট্যান্স
+import api from "@/utils/api"; 
 
 export default function ProductsPage() {
   // ⚙️ কোয়েরি ও ফিল্টার স্টেটস
@@ -18,14 +18,13 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const itemsPerPage = 4; // প্রতি পেজে কয়টি করে ডাটা রেন্ডার হবে (সার্ভার সাইড সাইজ)
+  const itemsPerPage = 4; 
 
   // 🔄 মঙ্গোডিবি সার্ভার থেকে ডাটা ফেচ করার ডাইনামিক মেকানিজম
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
       try {
-        // ব্যাকএন্ডের এপিআই ফরম্যাট অনুযায়ী কুয়েরি প্যারামস পাঠানো হচ্ছে
         const response = await api.get(`/products`, {
           params: {
             page: currentPage,
@@ -47,7 +46,6 @@ export default function ProductsPage() {
       }
     };
 
-    // ইউজার টাইপ করার সাথে সাথে যেন বারবার হিট না হয়, তার জন্য একটি ছোট ডিবাউন্স এফেক্ট
     const delayDebounceFn = setTimeout(() => {
       fetchProducts();
     }, 400);
@@ -84,7 +82,7 @@ export default function ProductsPage() {
             <Search className="absolute left-3.5 top-3.5 h-3.5 w-3.5 text-slate-500" />
           </div>
 
-          {/* সর্টিং ড্রপডাউন (সার্ভার সাইড সর্ট ভ্যালু ম্যাচ করে) */}
+          {/* সর্টিং ড্রপডাউন */}
           <div className="relative w-full md:w-56 flex items-center gap-2">
             <ArrowUpDown className="h-4 w-4 text-cyan-500 flex-shrink-0" />
             <select 
@@ -99,13 +97,13 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* CATEGORY TABS */}
+        {/* CATEGORY TABS (ড্যাশবোর্ড ফর্মের ক্যাটাগরির সাথে ম্যাচকৃত) */}
         <div className="flex flex-wrap justify-center items-center gap-2.5 mb-10 bg-slate-900/30 p-1.5 rounded-2xl border border-slate-800/60 w-max mx-auto">
           {[
             { label: "All Items", value: "" },
-            { label: "Electronics", value: "Electronics" },
-            { label: "Furniture", value: "Furniture" },
-            { label: "Vehicles", value: "Vehicles" }
+            { label: "Smartphones", value: "smartphones" },
+            { label: "Laptops", value: "laptops" },
+            { label: "Smartwatches", value: "smartwatches" }
           ].map((cat) => (
             <button 
               key={cat.value}
@@ -119,7 +117,6 @@ export default function ProductsPage() {
 
         {/* PRODUCTS RENDER & SKELETON LOADER */}
         {isLoading ? (
-          /* 💀 সুপিরিয়র কঙ্কাল (Skeleton) লোডার রিকোয়ারমেন্ট অনুযায়ী */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-[#1e293b]/20 border border-slate-800/40 h-80 rounded-3xl animate-pulse p-5 space-y-4">

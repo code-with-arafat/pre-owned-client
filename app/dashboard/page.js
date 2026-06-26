@@ -7,7 +7,7 @@ import {
   User, ShoppingCart, PlusCircle, Package, Users, 
   AlertTriangle, LogOut, BarChart3, Upload, CheckCircle2 
 } from "lucide-react";
-
+import api from "@/utils/api"; // 👈 এপিআই কল করার জন্য ইম্পোর্ট করা হলো
 
 export default function DashboardPage() {
   const { user, logoutUser } = useAuth();
@@ -133,9 +133,12 @@ export default function DashboardPage() {
 }
 
 /* ==========================================
-   ADD PRODUCT FORM COMPONENT (NEW)
+   ADD PRODUCT FORM COMPONENT (UPDATED & SYNCED)
    ========================================== */
 function AddProductForm({ onSuccess }) {
+  const { user } = useAuth(); // 👈 লগইন থাকা সেলারের ডেটা পাওয়ার জন্য
+  const [isLoading, setIsLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     name: "",
     category: "smartphones",
@@ -149,11 +152,45 @@ function AddProductForm({ onSuccess }) {
     description: ""
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Product Submitted successfully:", formData);
-    alert("🎉 Product Added Successfully! (Console Check করুন)");
-    onSuccess(); // ফর্ম সাবমিট হলে অটোমেটিক প্রোডাক্ট লিস্টিং ট্যাবে ব্যাক করবে
+    setIsLoading(true);
+
+    // 📦 সার্ভার স্কিমা অনুযায়ী প্রফেশনাল অবজেক্ট স্ট্রাকচার
+    const productData = {
+      title: formData.name, // আপনার এক্সপ্রেস ব্যাক-এন্ডে এটিকে 'title' হিসেবে রিসিভ করবে
+      category: formData.category,
+      condition: formData.condition,
+      price: parseFloat(formData.resalePrice), // ডেটাবেজে নাম্বার ফরম্যাটে পাঠানোর জন্য কাস্টিং
+      originalPrice: parseFloat(formData.originalPrice),
+      yearsOfUse: formData.yearsOfUse,
+      location: formData.location,
+      phone: formData.phone,
+      images: [formData.image], // সার্ভার সাইড অ্যারে হ্যান্ডলিং সেফটি
+      description: formData.description,
+      sellerInfo: {
+        userId: user?.uid || "seller_id_001",
+        name: user?.displayName || "Anonymous Seller",
+        email: user?.email
+      },
+      status: "available", // প্রোডাক্ট লিস্ট হওয়ার সাথে সাথে 'available' দেখাবে
+      createdAt: new Date()
+    };
+
+    try {
+      // 🌐 আপনার এক্সপ্রেস ব্যাক-এন্ড সার্ভারে ডেটা হিট করানো হচ্ছে
+      const response = await api.post("/products", productData);
+      
+      if (response.data.insertedId) {
+        alert("🎉 Product Injected Successfully into 'resellHubDB.products' collection!");
+        onSuccess(); // ফর্ম রিসেট হয়ে অটোমেটিক প্রোডাক্ট লিস্টিং ট্যাবে ব্যাক করবে
+      }
+    } catch (error) {
+      console.error("Error inserting product into MongoDB:", error);
+      alert("Failed to sync with MongoDB server. Check JWT Token or Server Console!");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -176,7 +213,8 @@ function AddProductForm({ onSuccess }) {
             <input 
               type="text" required
               placeholder="e.g. iPhone 14 Pro Max - 256GB"
-              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors"
+              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-white"
+              value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
             />
           </div>
@@ -185,7 +223,8 @@ function AddProductForm({ onSuccess }) {
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Category</label>
             <select 
-              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-slate-300"
+              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-slate-300 cursor-pointer"
+              value={formData.category}
               onChange={(e) => setFormData({...formData, category: e.target.value})}
             >
               <option value="smartphones">Smartphones</option>
@@ -198,7 +237,8 @@ function AddProductForm({ onSuccess }) {
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Condition</label>
             <select 
-              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-slate-300"
+              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-slate-300 cursor-pointer"
+              value={formData.condition}
               onChange={(e) => setFormData({...formData, condition: e.target.value})}
             >
               <option value="excellent">Excellent (Like New)</option>
@@ -213,7 +253,8 @@ function AddProductForm({ onSuccess }) {
             <input 
               type="number" required
               placeholder="Asking price"
-              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors"
+              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-white"
+              value={formData.resalePrice}
               onChange={(e) => setFormData({...formData, resalePrice: e.target.value})}
             />
           </div>
@@ -224,7 +265,8 @@ function AddProductForm({ onSuccess }) {
             <input 
               type="number" required
               placeholder="Buying price"
-              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors"
+              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-white"
+              value={formData.originalPrice}
               onChange={(e) => setFormData({...formData, originalPrice: e.target.value})}
             />
           </div>
@@ -235,7 +277,8 @@ function AddProductForm({ onSuccess }) {
             <input 
               type="text" required
               placeholder="e.g. 8 Months or 1.5 Years"
-              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors"
+              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-white"
+              value={formData.yearsOfUse}
               onChange={(e) => setFormData({...formData, yearsOfUse: e.target.value})}
             />
           </div>
@@ -246,7 +289,8 @@ function AddProductForm({ onSuccess }) {
             <input 
               type="text" required
               placeholder="e.g. Rajshahi, Dhaka"
-              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors"
+              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-white"
+              value={formData.location}
               onChange={(e) => setFormData({...formData, location: e.target.value})}
             />
           </div>
@@ -257,7 +301,8 @@ function AddProductForm({ onSuccess }) {
             <input 
               type="tel" required
               placeholder="e.g. 017XXXXXXXX"
-              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors"
+              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-white"
+              value={formData.phone}
               onChange={(e) => setFormData({...formData, phone: e.target.value})}
             />
           </div>
@@ -269,7 +314,8 @@ function AddProductForm({ onSuccess }) {
               <input 
                 type="url" required
                 placeholder="https://images.unsplash.com/... বা যেকোনো ইমেজের লিংক"
-                className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] pl-11 pr-4 py-3 rounded-xl text-sm focus:outline-none transition-colors"
+                className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] pl-11 pr-4 py-3 rounded-xl text-sm focus:outline-none transition-colors text-white"
+                value={formData.image}
                 onChange={(e) => setFormData({...formData, image: e.target.value})}
               />
               <Upload className="absolute left-4 top-3.5 h-4 w-4 text-slate-500" />
@@ -282,7 +328,8 @@ function AddProductForm({ onSuccess }) {
             <textarea 
               rows="4" required
               placeholder="প্রোডাক্টের কোনো স্ক্র্যাচ বা ইন্টারনাল প্রবলেম থাকলে এখানে উল্লেখ করুন..."
-              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors resize-none"
+              className="w-full bg-slate-900 border border-slate-800 focus:border-[#06b6d4] px-4 py-3 rounded-xl text-sm focus:outline-none transition-colors resize-none text-white"
+              value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
             ></textarea>
           </div>
@@ -291,12 +338,20 @@ function AddProductForm({ onSuccess }) {
         {/* Submit Button */}
         <div className="pt-4">
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: isLoading ? 1 : 1.02 }}
+            whileTap={{ scale: isLoading ? 1 : 0.98 }}
             type="submit"
-            className="w-full bg-gradient-to-r from-[#059669] to-[#06b6d4] text-slate-900 font-bold py-3.5 rounded-xl uppercase tracking-widest text-xs shadow-lg shadow-cyan-500/10 transition-all"
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-[#059669] to-[#06b6d4] text-slate-900 font-bold py-3.5 rounded-xl uppercase tracking-widest text-xs shadow-lg shadow-cyan-500/10 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            Submit Listing
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                <span>Publishing Item...</span>
+              </>
+            ) : (
+              <span>Submit Listing</span>
+            )}
           </motion.button>
         </div>
       </form>

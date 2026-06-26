@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "@/firebase.config";
+import axios from "axios"; // 👈 ১. প্রথমে axios ইমপোর্ট করে নিলাম
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -23,7 +24,7 @@ export function AuthProvider({ children }) {
   const getUserRole = (email) => {
     if (!email) return "buyer";
     
-    // 💡 আপনার টেস্টিং ইমেইলগুলো এখানে বসিয়ে রোল সেট করতে পারবেন
+    // 💡 আপনার টেস্টিং ইমেইলগুলো এখানে বসিয়ে রোল সেট করতে পারবেন
     if (email.includes("arafat") || email === "arafatinfo3@gmail.com") {
       return "admin"; 
     } else if (email.includes("seller") || email === "seller@gmail.com") {
@@ -68,20 +69,36 @@ export function AuthProvider({ children }) {
     });
   };
 
-  // ৫. ইউজার স্টেট ট্র্যাকিং (Observer) + রোল মিক্সিন
+  // ৫. ইউজার স্টেট ট্র্যাকিং (Observer) + JWT টোকেন জেনারেশন (UPDATED)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        // ফায়ারবেস ইউজারের সাথে কাস্টম রোল যুক্ত করা হচ্ছে
         const role = getUserRole(currentUser.email);
         setUser({
           ...currentUser,
           role: role
         });
+
+        // 🔒 🚀 ২. ইউজার লগইন থাকলে ব্যাক-এন্ড থেকে টোকেন এনে LocalStorage-এ সেট করা হচ্ছে
+        const userInfo = { email: currentUser.email };
+        axios.post('http://localhost:5000/jwt', userInfo)
+          .then(res => {
+            if (res.data.token) {
+              localStorage.setItem('access-token', res.data.token);
+              setLoading(false);
+            }
+          })
+          .catch(err => {
+            console.error("JWT Token generation failed:", err);
+            setLoading(false);
+          });
+
       } else {
         setUser(null);
+        // 🔓 ৩. ইউজার লগআউট করলে LocalStorage থেকে টোকেন রিমুভ করে দেওয়া হচ্ছে
+        localStorage.removeItem('access-token');
+        setLoading(false);
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, []);

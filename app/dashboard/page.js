@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   User, ShoppingCart, PlusCircle, Package, Users, 
-  AlertTriangle, LogOut, BarChart3, Upload, CheckCircle2, Trash2 
+  AlertTriangle, LogOut, BarChart3, Upload, CheckCircle2, Trash2, ShoppingBag
 } from "lucide-react";
 import api from "@/utils/api"; 
 
@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const { user, logoutUser } = useAuth();
   const router = useRouter();
   
+  // ব্যাকএন্ড বা ফায়ারবেস থেকে পাওয়া ইউজারের রোল ব্যবহার করা হলো
   const userRole = user?.role || "seller"; 
   const [activeTab, setActiveTab] = useState("listings");
 
@@ -47,7 +48,14 @@ export default function DashboardPage() {
             
             {userRole === "buyer" && (
               <>
-                <button className="flex items-center space-x-3 w-full px-4 py-3 bg-[#06b6d4]/10 text-[#06b6d4] font-semibold text-sm rounded-xl border border-[#06b6d4]/20">
+                <button 
+                  onClick={() => setActiveTab("myOrders")}
+                  className={`flex items-center space-x-3 w-full px-4 py-3 font-semibold text-sm rounded-xl border transition-all ${
+                    activeTab === "myOrders" 
+                    ? "bg-[#06b6d4]/10 text-[#06b6d4] border-[#06b6d4]/20" 
+                    : "text-slate-400 border-transparent hover:bg-slate-800/50 hover:text-white"
+                  }`}
+                >
                   <ShoppingCart className="h-4 w-4" /> <span>My Orders</span>
                 </button>
               </>
@@ -91,7 +99,7 @@ export default function DashboardPage() {
           </nav>
         </div>
 
-        <button onClick={logoutUser} className="flex items-center space-x-3 w-full px-4 py-3 text-rose-400 hover:bg-rose-950/20 text-sm font-semibold rounded-xl transition-colors mt-auto">
+        <button onClick={logoutUser} className="flex items-center space-x-3 w-full px-4 py-3 text-rose-400 hover:bg-rose-950/20 text-sm font-semibold rounded-xl transition-colors mt-auto cursor-pointer">
           <LogOut className="h-4 w-4" /> <span>Logout</span>
         </button>
       </aside>
@@ -107,8 +115,13 @@ export default function DashboardPage() {
 
         {/* DYNAMIC CONTENT SWITCHER */}
         <div className="mt-8">
-          {userRole === "buyer" && <BuyerPanel />}
           {userRole === "admin" && <AdminPanel />}
+          
+          {userRole === "buyer" && (
+            <AnimatePresence mode="wait">
+              {activeTab === "myOrders" && <BuyerPanel key="myOrders" />}
+            </AnimatePresence>
+          )}
           
           {userRole === "seller" && (
             <AnimatePresence mode="wait">
@@ -321,7 +334,7 @@ function AddProductForm({ onSuccess }) {
             whileTap={{ scale: isLoading ? 1 : 0.98 }}
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-[#059669] to-[#06b6d4] text-slate-900 font-bold py-3.5 rounded-xl uppercase tracking-widest text-xs shadow-lg shadow-cyan-500/10 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-[#059669] to-[#06b6d4] text-slate-900 font-bold py-3.5 rounded-xl uppercase tracking-widest text-xs shadow-lg shadow-cyan-500/10 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {isLoading ? (
               <>
@@ -339,17 +352,17 @@ function AddProductForm({ onSuccess }) {
 }
 
 /* ==========================================
-   🔄 SELLER PANEL COMPONENT (DYNAMICALLY UPDATED)
+   🔄 SELLER PANEL COMPONENT 
    ========================================== */
 function SellerPanel() {
   const { user } = useAuth();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // সেলারের ইমেইল অনুযায়ী ব্যাক-এন্ড থেকে প্রোডাক্ট ফেচ করা
+  // এনকোডেড ইমেইল অনুযায়ী প্রোডাক্ট ফেচ করা হচ্ছে
   useEffect(() => {
     if (user?.email) {
-      api.get(`/products/seller/${user?.email}`)
+      api.get(`/products/seller/${encodeURIComponent(user?.email)}`)
         .then(res => {
           setProducts(res.data);
           setIsLoading(false);
@@ -361,7 +374,6 @@ function SellerPanel() {
     }
   }, [user?.email]);
 
-  // প্রোডাক্ট ডিলিট হ্যান্ডলার (বোনাস ফিচার হিসেবে অ্যাড করে দিলাম)
   const handleDelete = async (id) => {
     if (confirm("Are you sure you want to delete this listing?")) {
       try {
@@ -376,7 +388,6 @@ function SellerPanel() {
     }
   };
 
-  // 'sold' স্ট্যাটাসের প্রোডাক্ট কাউন্ট করার ক্যালকুলেশন
   const soldCount = products.filter(p => p.status === 'sold').length;
 
   if (isLoading) {
@@ -390,25 +401,21 @@ function SellerPanel() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      {/* 📊 TOP COUNTER STATS CARD */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-emerald-500/10 to-transparent border border-slate-800 p-5 rounded-2xl text-center">
           <span className="text-xs text-slate-400 font-semibold uppercase">Products Listed</span>
-          {/* 💥 ডাইনামিক কাউন্ট বসানো হলো */}
           <h2 className="text-3xl font-black text-emerald-400 mt-1">
             {products.length < 10 ? `0${products.length}` : products.length}
           </h2>
         </div>
         <div className="bg-gradient-to-br from-cyan-500/10 to-transparent border border-slate-800 p-5 rounded-2xl text-center">
           <span className="text-xs text-slate-400 font-semibold uppercase">Items Sold</span>
-          {/* 💥 বিক্রি হওয়া প্রোডাক্টের ডাইনামিক কাউন্ট */}
           <h2 className="text-3xl font-black text-cyan-400 mt-1">
             {soldCount < 10 ? `0${soldCount}` : soldCount}
           </h2>
         </div>
       </div>
 
-      {/* 📦 ACTIVE PRODUCT LISTINGS TABLE */}
       <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm">
         <h3 className="font-bold text-lg mb-4 text-slate-200">Active Product Listings</h3>
         
@@ -451,7 +458,7 @@ function SellerPanel() {
                     <td className="py-3 px-4 text-center">
                       <button 
                         onClick={() => handleDelete(product._id)}
-                        className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                        className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
                         title="Delete Listing"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -469,17 +476,83 @@ function SellerPanel() {
 }
 
 /* ==========================================
-   REST OF SUB-PANELS (EXISTING)
+   🔄 BUYER PANEL / MY ORDERS COMPONENT 
    ========================================== */
 function BuyerPanel() {
+  const { user } = useAuth();
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // ব্যাকএন্ডে বায়ারের বুকিং ডাটা ফেচ করার রুট (প্রয়োজনে আপনার ব্যাকএন্ড রাউট অনুযায়ী পরিবর্তন করে নিবেন)
+  useEffect(() => {
+    if (user?.email) {
+      api.get(`/bookings/email/${encodeURIComponent(user?.email)}`)
+        .then(res => {
+          setOrders(res.data);
+          setIsLoading(false);
+        })
+        .catch(err => {
+          console.error("Error loading orders:", err);
+          setIsLoading(false);
+        });
+    }
+  }, [user?.email]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-3 justify-center py-20 text-sm text-slate-400">
+        <div className="w-5 h-5 border-2 border-[#06b6d4] border-t-transparent rounded-full animate-spin" />
+        <span>Loading your bookings...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm">
-      <h3 className="font-bold text-lg mb-3 text-slate-200">My Booked Orders</h3>
-      <p className="text-slate-400 text-sm">You haven't booked any second-hand gadgets yet.</p>
-    </div>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm">
+        <h3 className="font-bold text-lg mb-4 text-slate-200 flex items-center gap-2">
+          <ShoppingBag className="h-5 w-5 text-[#06b6d4]" />
+          <span>My Booked Orders</span>
+        </h3>
+        
+        {orders.length === 0 ? (
+          <p className="text-slate-400 text-sm">You haven't booked any second-hand gadgets yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
+                  <th className="py-3 px-4">Product Name</th>
+                  <th className="py-3 px-4">Price (৳)</th>
+                  <th className="py-3 px-4">Seller</th>
+                  <th className="py-3 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm divide-y divide-slate-800/50">
+                {orders.map((order) => (
+                  <tr key={order._id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-3 px-4 font-semibold text-white">{order.productTitle || order.title}</td>
+                    <td className="py-3 px-4 font-bold text-[#06b6d4]">৳{order.price?.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-slate-400">{order.sellerName || "N/A"}</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        {order.status || "Booked"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 }
 
+/* ==========================================
+   ADMIN PANEL COMPONENT
+   ========================================== */
 function AdminPanel() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

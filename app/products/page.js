@@ -1,11 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; // 🟢 Next.js রাউটার ইমপোর্ট
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, MapPin, Calendar, Layers, Smartphone, Laptop, Watch, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
-import BookingModal from "@/components/BookingModal";
 import api from "@/utils/api"; 
 
 export default function ProductsPage() {
+  const router = useRouter(); // 🟢 নেভিগেশনের জন্য ইনিশিয়ালাইজ করা হলো
+  
   // ⚙️ কোয়েরি ও ফিল্টার স্টেটস
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,7 +18,6 @@ export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const itemsPerPage = 4; 
 
@@ -52,6 +53,11 @@ export default function ProductsPage() {
 
     return () => clearTimeout(delayDebounceFn);
   }, [currentPage, searchQuery, selectedCategory, sortOrder]);
+
+  // 🟢 বুক নাউ বা পে নাও বাটনে ক্লিক করলে চেকআউট/পেমেন্ট পেজে নিয়ে যাওয়ার লজিক
+  const handleBookNow = (productId) => {
+    router.push(`/dashboard/payment/${productId}`);
+  };
 
   return (
     <div className="bg-[#0f172a] text-slate-100 min-h-screen font-sans py-12 px-4 sm:px-6 lg:px-8">
@@ -97,7 +103,7 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* CATEGORY TABS (ড্যাশবোর্ড ফর্মের ক্যাটাগরির সাথে ম্যাচকৃত) */}
+        {/* CATEGORY TABS */}
         <div className="flex flex-wrap justify-center items-center gap-2.5 mb-10 bg-slate-900/30 p-1.5 rounded-2xl border border-slate-800/60 w-max mx-auto">
           {[
             { label: "All Items", value: "" },
@@ -160,8 +166,8 @@ export default function ProductsPage() {
                       <p className="text-base font-black text-emerald-400">৳{(product.price || product.resalePrice || 0).toLocaleString()}</p>
                     </div>
                     <button 
-                      onClick={() => setSelectedProduct(product)} 
-                      className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all flex items-center space-x-1"
+                      onClick={() => handleBookNow(product._id)} // 🟢 পেমেন্ট পেজে রিডাইরেক্ট করার ফাংশন কল
+                      className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all cursor-pointer flex items-center space-x-1"
                     >
                       <ShieldCheck className="h-3.5 w-3.5" /><span>Book Now</span>
                     </button>
@@ -196,13 +202,6 @@ export default function ProductsPage() {
         )}
 
       </div>
-
-      {/* GLOBAL BOOKING MODAL */}
-      <AnimatePresence>
-        {selectedProduct && (
-          <BookingModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -75,7 +75,7 @@ export default function HomePage() {
 
     // ২. ইউজার লগইন থাকলে তার রোল চেক করা হচ্ছে
     try {
-      const response = await api.get(`/users/email/${user.email}`);
+      const response = await api.get(`/users/email/${encodeURIComponent(user.email)}`);
       
       if (response.data && response.data.role === "seller") {
         router.push("/dashboard/add-product"); // সেলার হলে ড্যাশবোর্ডে প্রোডাক্ট ফর্ম

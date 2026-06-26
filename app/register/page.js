@@ -18,10 +18,10 @@ export default function RegisterPage() {
   // ফর্ম সাবমিট হ্যান্ডলার (Firebase + MongoDB Synchronization)
   const onSubmit = async (data) => {
     try {
-      // ১. ফায়ারবেস অ্যাকাউন্ট ক্রিয়েশন
+      // ১. ফায়ারবেস অ্যাকাউন্ট ক্রিয়েশন
       await createUser(data.email, data.password);
       
-      // ২. ফায়ারবেস প্রোফাইল আপডেট
+      // ২. ফায়ারবেস প্রোফাইল আপডেট
       await updateUserProfile(data.name, "https://placehold.co/150");
 
       // ৩. ডাটাবেজের জন্য অবজেক্ট স্ট্রাকচার তৈরি
@@ -32,10 +32,15 @@ export default function RegisterPage() {
         role: role // ইউজারের সিলেক্ট করা ডাইনামিক রোল
       };
 
-      // ৪. লাইভ এক্সপ্রেস সার্ভার হয়ে মঙ্গোডিবি-তে পুশ
+      // ৪. লাইভ এক্সপ্রেস সার্ভার হয়ে মঙ্গোডিবি-তে পুশ
       const response = await api.put("/users", userData);
 
       if (response.data) {
+        // 🟢 অতিরিক্ত সিকিউরিটি: ইউজার যদি সেলার হয়, তবে ডাটাবেজে তার রোল explicitly "seller" আপডেট করুন
+        if (role === "seller") {
+          await api.patch(`/users/seller/${data.email}`);
+        }
+
         Swal.fire({
           icon: "success",
           title: `Registration Successful as a ${role.toUpperCase()}!`,
@@ -44,7 +49,7 @@ export default function RegisterPage() {
           confirmButtonColor: "#06b6d4"
         });
 
-        // ৫. রোল অনুযায়ী কন্ডিশনাল রিডাইরেক্ট
+        // ৫. রোল অনুযায়ী কন্ডিশনাল রিডাইরেক্ট
         if (role === "seller") {
           router.push("/dashboard/add-product");
         } else {
@@ -62,19 +67,25 @@ export default function RegisterPage() {
     }
   };
 
-  //  গুগল সাইন আপ হ্যান্ডলার
+  // গুগল সাইন আপ হ্যান্ডলার
   const handleGoogleSignUp = async () => {
     try {
       const result = await loginWithGoogle();
+      const email = result?.user?.email;
       
       const googleUserData = {
         name: result?.user?.displayName || "Google User",
-        email: result?.user?.email,
+        email: email,
         photo: result?.user?.photoURL || "https://placehold.co/150",
-        role: role // গুগল লগইনের সময়ও সিলেক্টেড রোল সিঙ্ক হবে
+        role: role // গুগল লগইনের সময়ও সিলেক্টেড রোল সিঙ্ক হবে
       };
 
       await api.put("/users", googleUserData);
+
+      // 🟢 অতিরিক্ত সিকিউরিটি: গুগল দিয়ে সাইন-আপের সময় সেলার সিলেক্ট করলে রোল আপডেট করুন
+      if (role === "seller") {
+        await api.patch(`/users/seller/${email}`);
+      }
 
       Swal.fire({
         icon: "success",
@@ -172,7 +183,7 @@ export default function RegisterPage() {
               {errors.password && <p className="text-rose-400 text-xs mt-1">{errors.password.message}</p>}
             </div>
 
-            {/*  Dynamic Role Selector */}
+            {/* Dynamic Role Selector */}
             <div className="space-y-2 text-xs pt-2">
               <label className="font-bold text-slate-400 uppercase tracking-wider block mb-1">
                 Join ReSell Hub As A:
@@ -184,7 +195,7 @@ export default function RegisterPage() {
                   className={`p-3.5 rounded-2xl border text-center font-bold uppercase tracking-wider cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${role === "buyer"
                       ? "bg-cyan-500/10 border-[#06b6d4] text-cyan-400 shadow-md shadow-cyan-500/5"
                       : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
-                    }`}
+                  }`}
                 >
                   <span className="text-sm">🛒</span>
                   <span>I want to Buy</span>
@@ -196,7 +207,7 @@ export default function RegisterPage() {
                   className={`p-3.5 rounded-2xl border text-center font-bold uppercase tracking-wider cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${role === "seller"
                       ? "bg-cyan-500/10 border-[#06b6d4] text-cyan-400 shadow-md shadow-cyan-500/5"
                       : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
-                    }`}
+                  }`}
                 >
                   <span className="text-sm">💼</span>
                   <span>I want to Sell</span>

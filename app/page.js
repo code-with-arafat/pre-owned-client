@@ -1,7 +1,9 @@
 "use client";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Laptop, Smartphone, Watch, ArrowRight, Sparkles, ShieldCheck, Zap } from "lucide-react";
+import BookingModal from "@/components/BookingModal";
+import { useState } from "react";
 
 // ডেমো ডেটা: ক্যাটাগরি লিস্ট
 const categories = [
@@ -10,7 +12,7 @@ const categories = [
   { id: 3, name: "Smartwatches", icon: Watch, count: "45+ Items", color: "from-amber-500/20 to-orange-500/10", border: "hover:border-amber-500/50" },
 ];
 
-// ডেমೋ ডেটা: অ্যাডভার্টাইজড প্রোডাক্টস (পরবর্তীতে ডাটাবেজ থেকে আসবে)
+// অ্যাডভার্টাইজড প্রোডাক্টস (পরবর্তীতে ডাটাবেজ থেকে আসবে)
 const advertisedProducts = [
   {
     id: "p1",
@@ -37,9 +39,10 @@ const advertisedProducts = [
 ];
 
 export default function HomePage() {
+  const [selectedProduct, setSelectedProduct] = useState(null);
   return (
     <div className="bg-[#0f172a] text-slate-100 min-h-screen font-sans overflow-hidden">
-      
+
       {/* 1. HERO SECTION */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center lg:pt-32">
         <div className="absolute inset-0 -z-10 flex items-center justify-center">
@@ -163,7 +166,7 @@ export default function HomePage() {
                 <div>
                   <span className="text-[11px] font-bold text-[#06b6d4] tracking-wider uppercase">{product.category}</span>
                   <h3 className="text-lg font-bold text-slate-100 mt-1 leading-snug group-hover:text-white transition-colors">{product.title}</h3>
-                  
+
                   {/* Specifications row */}
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-slate-400 font-medium">
                     <p>Use: <span className="text-slate-200">{product.yearsOfUse}</span></p>
@@ -178,8 +181,9 @@ export default function HomePage() {
                     <p className="text-xs text-slate-500 line-through">Original: ৳{product.originalPrice.toLocaleString()}</p>
                     <p className="text-xl font-black text-emerald-400 mt-0.5">৳{product.resalePrice.toLocaleString()}</p>
                   </div>
-                  
+
                   <motion.button
+                    onClick={() => setSelectedProduct(product)} // বাটন ক্লিকের লজিক
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all flex items-center space-x-1"
@@ -191,8 +195,23 @@ export default function HomePage() {
               </div>
             </motion.div>
           ))}
+
         </div>
       </section>
+
+
+
+      {/* বুকিং মডাল মাউন্ট লজিক (ঠিক এই জায়গায় বসবে) */}
+      <AnimatePresence>
+        {selectedProduct && (
+          <BookingModal
+            product={selectedProduct}
+            onClose={() => setSelectedProduct(null)}
+          />
+        )}
+      </AnimatePresence>
+
+
     </div>
   );
 }

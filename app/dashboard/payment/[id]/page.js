@@ -4,8 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import axios from "axios";
+import { useAuth } from "@/hooks/useAuth"; // 👈 আপনার প্রজেক্টের রিয়েল ফায়ারবেস হুক ইমপোর্ট করা হলো
 
-// ভিএসএল-এর লাইভ ব্যাকএন্ড বেইজ ইউআরএল
+// লাইভ ব্যাকএন্ড বেইজ ইউআরএল
 const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";
 
 // স্ট্রাইপ পাবলিক কি লোড করা
@@ -14,7 +15,7 @@ const stripePromise = loadStripe(
     "pk_test_51TmnwN1PB5nVIIKFapozwHiy9WiHutnBiRCbi8E9hD9eEGZALE32L7vgiPMvIh9aDHXwt3uj21vnl8Aatuvi9AM900n7dw1Ivo"
 );
 
-// ভেতরের চেকআউট ফর্ম কম্পোনেন্ট
+// ভেতরের চেক아উট ফর্ম কম্পোনেন্ট
 const CheckoutForm = ({ product, user }) => {
     const stripe = useStripe();
     const elements = useElements();
@@ -160,12 +161,8 @@ export default function PaymentPage() {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     
-    // ডামি ইউজার - Auth Context থেকে ইউজার নিয়ে নিবেন
-    const user = {
-        uid: "user123",
-        displayName: "Test Buyer",
-        email: "testbuyer@gmail.com"
-    };
+    // 👈 ডামি ইউজার ہটিয়ে দিয়ে সরাসরি Firebase Auth থেকে লগড-ইন ইউজার নেওয়া হলো
+    const { user } = useAuth(); 
 
     useEffect(() => {
         if (id) {

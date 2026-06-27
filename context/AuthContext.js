@@ -1,125 +1,192 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
-import { auth } from "@/firebase.config";
-import axios from "axios"; // 👈 ১. প্রথমে axios ইমপোর্ট করে নিলাম
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
-  updateProfile
-} from "firebase/auth";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import axios from "axios";
+import { useAuth } from "@/hooks/useAuth"; // 👈 আপনার প্রজেক্টের রিয়েল ফায়ারবেস হুক ইমপোর্ট করা হলো
 
-const AuthContext = createContext(null);
+// লাইভ ব্যাকএন্ড বেইজ ইউআরএল
+const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+// স্ট্রাইপ পাবলিক কি লোড করা
+const stripePromise = loadStripe(
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 
+    "pk_test_51TmnwN1PB5nVIIKFapozwHiy9WiHutnBiRCbi8E9hD9eEGZALE32L7vgiPMvIh9aDHXwt3uj21vnl8Aatuvi9AM900n7dw1Ivo"
+);
 
-  const googleProvider = new GoogleAuthProvider();
+// ভেতরের চেক아উট ফর্ম কম্পোনেন্ট
+const CheckoutForm = ({ product, user }) => {
+    const stripe = useStripe();
+    const elements = useElements();
+    const router = useRouter();
+    const [error, setError] = useState("");
+    const [clientSecret, setClientSecret] = useState("");
+    const [processing, setProcessing] = useState(false);
+    const [transactionId, setTransactionId] = useState("");
 
-  // 🎯 ইউজারের ইমেইল চেক করে রোল রিটার্ন করার কাস্টম ফাংশন
-  const getUserRole = (email) => {
-    if (!email) return "buyer";
-    
-    // 💡 আপনার টেস্টিং ইমেইলগুলো এখানে বসিয়ে রোল সেট করতে পারবেন
-    if (email.includes("arafat") || email === "arafatinfo3@gmail.com") {
-      return "admin"; 
-    } else if (email.includes("seller") || email === "seller@gmail.com") {
-      return "seller";
-    }
-    
-    return "buyer"; // ডিফল্টভাবে সবাই Buyer (ক্রেতা)
-  };
+    // প্রোডাক্টের দাম অনুযায়ী পেমেন্ট ইন্টেন্ট কল করা
+    useEffect(() => {
+        if (product?.price) {
+            axios.post(`${BACKEND_URL}/create-payment-intent`, { price: product.price })
+                .then(res => {
+                    setClientSecret(res.data.clientSecret);
+                })
+                .catch(err => console.error("Payment Intent Error:", err));
+        }
+    }, [product?.price]);
 
-  // ১. সাইন আপ (ইমেইল-পাসওয়ার্ড)
-  const createUser = (email, password) => {
-    setLoading(true);
-    return createUserWithEmailAndPassword(auth, email, password);
-  };
+    const handleSubmit = async (event) => {
+        event.preventDefault();
 
-  // ২. লগইন (ইমেইল-পাসওয়ার্ড)
-  const loginUser = (email, password) => {
-    setLoading(true);
-    return signInWithEmailAndPassword(auth, email, password);
-  };
+        if (!stripe || !elements) {
+            return;
+        }
 
-  // ৩. গুগল লগইন
-  const loginWithGoogle = () => {
-    setLoading(true);
-    return signInWithPopup(auth, googleProvider);
-  };
+        const card = elements.getElement(CardElement);
 
-  // ৪. লগআউট
-  const logoutUser = () => {
-    setLoading(true);
-    return signOut(auth);
-  };
-  
-  // ৪. প্রোফাইল আপডেট (নাম ও ছবি)
-  const updateUserProfile = (name, photoURL) => {
-    return updateProfile(auth.currentUser, {
-      displayName: name,
-      photoURL: photoURL
-    }).then(() => {
-      // প্রোফাইল আপডেট হলে স্টেট রিফ্রেশ করা
-      setUser((prev) => ({ ...prev, displayName: name, photoURL: photoURL }));
-    });
-  };
+        if (card === null) {
+            return;
+        }
 
-  // ৫. ইউজার স্টেট ট্র্যাকিং (Observer) + JWT টোকেন জেনারেশন (UPDATED)
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        const role = getUserRole(currentUser.email);
-        setUser({
-          ...currentUser,
-          role: role
+        setProcessing(true);
+
+        const { error, paymentMethod } = await stripe.createPaymentMethod({
+            type: "card",
+            card,
         });
 
-        // 🔒 🚀 ২. ইউজার লগইন থাকলে ব্যাক-এন্ড থেকে টোকেন এনে LocalStorage-এ সেট করা হচ্ছে
-        const userInfo = { email: currentUser.email };
-        axios.post('http://localhost:5000/jwt', userInfo)
-          .then(res => {
-            if (res.data.token) {
-              localStorage.setItem('access-token', res.data.token);
-              setLoading(false);
+        if (error) {
+            setError(error.message);
+            setProcessing(false);
+            return;
+        } else {
+            setError("");
+        }
+
+        // পেমেন্ট কনফার্ম করা
+        const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: {
+                card: card,
+                billing_details: {
+                    email: user?.email || "anonymous@gmail.com",
+                    name: user?.displayName || "Anonymous",
+                },
+            },
+        });
+
+        if (confirmError) {
+            setError(confirmError.message);
+            setProcessing(false);
+            return;
+        }
+
+        if (paymentIntent.status === "succeeded") {
+            setTransactionId(paymentIntent.id);
+            
+            // পেমেন্ট সফল হলে ডাটাবেজে অর্ডার ও পেমেন্ট সেভ করার অবজেক্ট
+            const paymentData = {
+                transactionId: paymentIntent.id,
+                amount: product.price,
+                productId: product._id,
+                productTitle: product.title,
+                productImage: product.images?.[0] || "https://placehold.co/150",
+                buyerId: user?.uid || "temp-buyer-id",
+                buyerName: user?.displayName || "Anonymous",
+                buyerEmail: user?.email || "buyer@mail.com",
+                sellerId: product.sellerInfo?.userId || "temp-seller-id",
+                sellerName: product.sellerInfo?.name || "Seller",
+                sellerEmail: product.sellerInfo?.email || "seller@mail.com",
+            };
+
+            try {
+                // ব্যাকএন্ডের পেমেন্ট এপিআই কল
+                const res = await axios.post(`${BACKEND_URL}/payments`, paymentData);
+                if (res.data?.paymentResult?.insertedId) {
+                    alert("Payment Successful & Order Placed!");
+                    router.push("/dashboard/my-orders");
+                }
+            } catch (err) {
+                console.error("Error saving payment to DB:", err);
+                setError("Failed to save order. Please contact support.");
             }
-          })
-          .catch(err => {
-            console.error("JWT Token generation failed:", err);
-            setLoading(false);
-          });
+        }
+        setProcessing(false);
+    };
 
-      } else {
-        setUser(null);
-        // 🔓 ৩. ইউজার লগআউট করলে LocalStorage থেকে টোকেন রিমুভ করে দেওয়া হচ্ছে
-        localStorage.removeItem('access-token');
-        setLoading(false);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+    return (
+        <form onSubmit={handleSubmit} className="max-w-md mx-auto bg-[#1e293b] p-6 rounded-2xl border border-slate-700 mt-10 text-white">
+            <h2 className="text-lg font-bold mb-4 text-center">Complete Your Payment</h2>
+            <div className="mb-4">
+                <p className="text-xs text-slate-400">Product: <span className="text-cyan-400 font-semibold">{product?.title}</span></p>
+                <p className="text-xs text-slate-400">Amount to pay: <span className="text-emerald-400 font-bold">BDT {product?.price}</span></p>
+            </div>
 
-  const authInfo = {
-    user,
-    loading,
-    createUser,
-    loginUser,
-    loginWithGoogle,
-    logoutUser,
-    updateUserProfile
-  };
+            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 mb-4">
+                <CardElement
+                    options={{
+                        style: {
+                            base: {
+                                fontSize: "16px",
+                                color: "#ffffff",
+                                "::placeholder": {
+                                    color: "#64748b",
+                                },
+                            },
+                            invalid: {
+                                color: "#ef4444",
+                            },
+                        },
+                    }}
+                />
+            </div>
 
-  return (
-    <AuthContext.Provider value={authInfo}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
+            {error && <p className="text-red-400 text-xs mb-4">{error}</p>}
+            {transactionId && <p className="text-emerald-400 text-xs mb-4">Transaction ID: {transactionId}</p>}
 
-export function useAuth() {
-  return useContext(AuthContext);
+            <button 
+                type="submit" 
+                disabled={!stripe || !clientSecret || processing} 
+                className="w-full bg-[#06b6d4] hover:bg-cyan-400 text-slate-900 font-bold py-3 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+            >
+                {processing ? "Processing..." : `Pay BDT ${product?.price}`}
+            </button>
+        </form>
+    );
+};
+
+// মেইন পেমেন্ট পেজ (ডাটা ফেচিং)
+export default function PaymentPage() {
+    const { id } = useParams();
+    const [product, setProduct] = useState(null);
+    const [loading, setLoading] = useState(true);
+    
+    // 👈 ডামি ইউজার ہটিয়ে দিয়ে সরাসরি Firebase Auth থেকে লগড-ইন ইউজার নেওয়া হলো
+    const { user } = useAuth(); 
+
+    useEffect(() => {
+        if (id) {
+            axios.get(`${BACKEND_URL}/products/${id}`)
+                .then(res => {
+                    setProduct(res.data);
+                    setLoading(false);
+                })
+                .catch(err => {
+                    console.error("Error fetching product details:", err);
+                    setLoading(false);
+                });
+        }
+    }, [id]);
+
+    if (loading) {
+        return <div className="text-center text-white mt-20">Loading Payment Gateway...</div>;
+    }
+
+    return (
+        <div className="bg-[#0f172a] min-h-screen py-10">
+            <Elements stripe={stripePromise}>
+                <CheckoutForm product={product} user={user} />
+            </Elements>
+        </div>
+    );
 }

@@ -4,11 +4,15 @@ import { useParams, useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import axios from "axios";
-// আপনার AuthContext অথবা স্টোর থেকে ইউজার ইনফরমেশন ইমপোর্ট করবেন (নিচে ডামি ইউজার দেওয়া হলো)
-// import { useAuth } from "@/hooks/useAuth"; 
 
-// স্ট্রাইপ పাবলিক কি টিভি বা .env ফাইল থেকে লোড করুন
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "your-publishable-key-here");
+// ভিএসএল-এর লাইভ ব্যাকএন্ড বেইজ ইউআরএল
+const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";
+
+// স্ট্রাইপ পাবলিক কি লোড করা
+const stripePromise = loadStripe(
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 
+    "pk_test_51TmnwN1PB5nVIIKFapozwHiy9WiHutnBiRCbi8E9hD9eEGZALE32L7vgiPMvIh9aDHXwt3uj21vnl8Aatuvi9AM900n7dw1Ivo"
+);
 
 // ভেতরের চেকআউট ফর্ম কম্পোনেন্ট
 const CheckoutForm = ({ product, user }) => {
@@ -20,10 +24,10 @@ const CheckoutForm = ({ product, user }) => {
     const [processing, setProcessing] = useState(false);
     const [transactionId, setTransactionId] = useState("");
 
-    // প্রোডাক্টের দাম অনুযায়ী পেমেন্ট ইন্টেন্ট কল করা
+    // প্রোডাক্টের দাম অনুযায়ী পেমেন্ট ইন্টেন্ট কল করা
     useEffect(() => {
         if (product?.price) {
-            axios.post("http://localhost:5000/create-payment-intent", { price: product.price })
+            axios.post(`${BACKEND_URL}/create-payment-intent`, { price: product.price })
                 .then(res => {
                     setClientSecret(res.data.clientSecret);
                 })
@@ -95,8 +99,8 @@ const CheckoutForm = ({ product, user }) => {
             };
 
             try {
-                // ব্যাকএন্ডের পেমেন্ট এপিআই কল (JWT বাইপাসড)
-                const res = await axios.post("http://localhost:5000/payments", paymentData);
+                // ব্যাকএন্ডের পেমেন্ট এপিআই কল
+                const res = await axios.post(`${BACKEND_URL}/payments`, paymentData);
                 if (res.data?.paymentResult?.insertedId) {
                     alert("Payment Successful & Order Placed!");
                     router.push("/dashboard/my-orders");
@@ -156,7 +160,7 @@ export default function PaymentPage() {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     
-    // ডামি ইউজার - আপনার প্রজেক্টের Auth Context থেকে ইউজার নিয়ে নিবেন
+    // ডামি ইউজার - Auth Context থেকে ইউজার নিয়ে নিবেন
     const user = {
         uid: "user123",
         displayName: "Test Buyer",
@@ -165,12 +169,12 @@ export default function PaymentPage() {
 
     useEffect(() => {
         if (id) {
-            axios.get(`http://localhost:5000/products/${id}`)
+            axios.get(`${BACKEND_URL}/products/${id}`)
                 .then(res => {
                     setProduct(res.data);
                     setLoading(false);
                 })
-                .err(err => {
+                .catch(err => {
                     console.error("Error fetching product details:", err);
                     setLoading(false);
                 });

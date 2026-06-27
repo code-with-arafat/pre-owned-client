@@ -1,12 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // 🟢 Next.js রাউটার ইমপোর্ট
+import { useRouter } from "next/navigation"; 
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, MapPin, Calendar, Layers, Smartphone, Laptop, Watch, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShieldCheck, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "@/utils/api"; 
+import axios from "axios";
+import { useAuth } from "@/hooks/useAuth"; // 👈 রিয়েল ফায়ারবেস ইউজার পাওয়ার জন্য হুক
+
+// ভিএসএল-এর লাইভ ব্যাকএন্ড বেইজ ইউআরএল
+const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";
 
 export default function ProductsPage() {
-  const router = useRouter(); // 🟢 নেভিগেশনের জন্য ইনিশিয়ালাইজ করা হলো
+  const router = useRouter(); 
+  const { user } = useAuth(); // 👈 লগড-ইন ইউজার ডিক্লেয়ার করা হলো
   
   // ⚙️ কোয়েরি ও ফিল্টার স্টেটস
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -18,10 +24,11 @@ export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const itemsPerPage = 4; 
 
-  // 🔄 মঙ্গোডিবি সার্ভার থেকে ডাটা ফেচ করার ডাইনামিক মেকানিজম
+  // 🔄 সার্ভার থেকে ডাটা ফেচ করার মেকানিজম
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
@@ -54,9 +61,44 @@ export default function ProductsPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [currentPage, searchQuery, selectedCategory, sortOrder]);
 
-  // 🟢 বুক নাউ বা পে নাও বাটনে ক্লিক করলে চেকআউট/পেমেন্ট পেজে নিয়ে যাওয়ার লজিক
-  const handleBookNow = (productId) => {
-    router.push(`/dashboard/payment/${productId}`);
+  // 🟢 বুক নাউ বাটনে ক্লিক করলে সরাসরি ডাটাবেজে অর্ডার সেভ ও মাই অর্ডারস পেজে রিডাইরেক্ট করার লজিক
+  const handleBookNow = async (product) => {
+    if (!user) {
+      alert("Please log in first to book a product!");
+      router.push("/login"); // লগইন পেজে রিডাইরেক্ট
+      return;
+    }
+
+    setIsProcessing(true);
+    
+    // ডাটাবেজে অর্ডার ও পেমেন্ট সেভ করার অবজেক্ট (সরাসরি বুকিং)
+    const orderData = {
+      transactionId: `BOOKING-${Date.now()}`,
+      amount: product.price || product.resalePrice || 0,
+      productId: product._id,
+      productTitle: product.title,
+      productImage: product.images?.[0] || product.image || "https://placehold.co/150",
+      buyerId: user?.uid || "temp-buyer-id",
+      buyerName: user?.displayName || "Anonymous",
+      buyerEmail: user?.email || "buyer@mail.com",
+      sellerId: product.sellerInfo?.userId || "temp-seller-id",
+      sellerName: product.sellerInfo?.name || "Seller",
+      sellerEmail: product.sellerInfo?.email || "seller@mail.com",
+    };
+
+    try {
+      // সরাসরি ব্যাকএন্ডের পেমেন্ট বা অর্ডার এপিআই কল
+      const res = await axios.post(`${BACKEND_URL}/payments`, orderData);
+      if (res.data?.paymentResult?.insertedId) {
+        alert("Booked Successfully! Product added to your orders.");
+        router.push("/dashboard/my-orders");
+      }
+    } catch (err) {
+      console.error("Error saving order to DB:", err);
+      alert("Failed to place order. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -166,10 +208,12 @@ export default function ProductsPage() {
                       <p className="text-base font-black text-emerald-400">৳{(product.price || product.resalePrice || 0).toLocaleString()}</p>
                     </div>
                     <button 
-                      onClick={() => handleBookNow(product._id)} // 🟢 পেমেন্ট পেজে রিডাইরেক্ট করার ফাংশন কল
-                      className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all cursor-pointer flex items-center space-x-1"
+                      disabled={isProcessing}
+                      onClick={() => handleBookNow(product)} // 🟢 সরাসরি বুকিং ফাংশন কল
+                      className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all cursor-pointer flex items-center space-x-1 disabled:opacity-50"
                     >
-                      <ShieldCheck className="h-3.5 w-3.5" /><span>Book Now</span>
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      <span>{isProcessing ? "Booking..." : "Book Now"}</span>
                     </button>
                   </div>
                 </div>

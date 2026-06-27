@@ -1,18 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ShieldCheck, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "@/utils/api"; 
 import axios from "axios";
-import { useAuth } from "@/hooks/useAuth"; // 👈 রিয়েল ফায়ারবেস ইউজার পাওয়ার জন্য হুক
+import { useAuth } from "@/hooks/useAuth"; // ফায়ারবেস রিয়েল ইউজার পাওয়ার জন্য
 
 // ভিএসএল-এর লাইভ ব্যাকএন্ড বেইজ ইউআরএল
 const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";
 
 export default function ProductsPage() {
   const router = useRouter(); 
-  const { user } = useAuth(); // 👈 লগড-ইন ইউজার ডিক্লেয়ার করা হলো
+  const { user } = useAuth(); 
   
   // ⚙️ কোয়েরি ও ফিল্টার স্টেটস
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -61,18 +61,18 @@ export default function ProductsPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [currentPage, searchQuery, selectedCategory, sortOrder]);
 
-  // 🟢 বুক নাউ বাটনে ক্লিক করলে সরাসরি ডাটাবেজে অর্ডার সেভ ও মাই অর্ডারস পেজে রিডাইরেক্ট করার লজিক
+  // 🟢 বুক নাউ বাটনে ক্লিক করলে সরাসরি ডাটাবেজে অর্ডার সেভ ও মাই অর্ডারস পেজে রিডাইরেক্ট করার লজিক (পেমেন্ট বাইপাস)
   const handleBookNow = async (product) => {
     if (!user) {
       alert("Please log in first to book a product!");
-      router.push("/login"); // লগইন পেজে রিডাইরেক্ট
+      router.push("/login"); 
       return;
     }
 
     setIsProcessing(true);
     
-    // ডাটাবেজে অর্ডার ও পেমেন্ট সেভ করার অবজেক্ট (সরাসরি বুকিং)
-    const orderData = {
+    // ডাটাবেজে ডিরেক্ট বুকিং ও অর্ডার সেভ করার অবজেক্ট
+    const bookingData = {
       transactionId: `BOOKING-${Date.now()}`,
       amount: product.price || product.resalePrice || 0,
       productId: product._id,
@@ -87,15 +87,15 @@ export default function ProductsPage() {
     };
 
     try {
-      // সরাসরি ব্যাকএন্ডের পেমেন্ট বা অর্ডার এপিআই কল
-      const res = await axios.post(`${BACKEND_URL}/payments`, orderData);
+      // সরাসরি ব্যাকএন্ডের পেমেন্ট বা অর্ডার এন্ডপয়েন্টে কল করা হলো
+      const res = await axios.post(`${BACKEND_URL}/payments`, bookingData);
       if (res.data?.paymentResult?.insertedId) {
         alert("Booked Successfully! Product added to your orders.");
         router.push("/dashboard/my-orders");
       }
     } catch (err) {
-      console.error("Error saving order to DB:", err);
-      alert("Failed to place order. Please try again.");
+      console.error("Error saving booking to DB:", err);
+      alert("Failed to place booking. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -209,7 +209,7 @@ export default function ProductsPage() {
                     </div>
                     <button 
                       disabled={isProcessing}
-                      onClick={() => handleBookNow(product)} // 🟢 সরাসরি বুকিং ফাংশন কল
+                      onClick={() => handleBookNow(product)} 
                       className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all cursor-pointer flex items-center space-x-1 disabled:opacity-50"
                     >
                       <ShieldCheck className="h-3.5 w-3.5" />

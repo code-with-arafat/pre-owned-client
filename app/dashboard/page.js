@@ -11,7 +11,7 @@ import {
 import api from "@/utils/api"; 
 
 export default function DashboardPage() {
-  const { user, logoutUser, updateUserProfile } = useAuth(); 
+  const { user, logoutUser } = useAuth(); 
   const router = useRouter();
   
   const userRole = user?.role || "buyer"; 
@@ -34,7 +34,7 @@ export default function DashboardPage() {
             )}
           </div>
           <span className="text-sm font-bold truncate max-w-[120px]">
-            {user?.displayName || "Arafat"}
+            {user?.displayName || "User"}
           </span>
         </div>
         <button 
@@ -57,11 +57,11 @@ export default function DashboardPage() {
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
               ) : (
-                user?.displayName?.charAt(0) || "A"
+                user?.displayName?.charAt(0) || "U"
               )}
             </div>
             <div>
-              <h4 className="text-sm font-bold truncate max-w-[140px]">{user?.displayName || "Arafat"}</h4>
+              <h4 className="text-sm font-bold truncate max-w-[140px]">{user?.displayName || "User"}</h4>
               <span className="text-[10px] bg-cyan-500/10 text-[#06b6d4] border border-cyan-500/20 px-2 py-0.5 rounded-full uppercase font-black tracking-wider block mt-0.5 w-max">
                 {userRole}
               </span>
@@ -183,28 +183,25 @@ function BuyerDashboard({ activeTab }) {
     }
   }, [user?.email, user?.displayName, user?.photoURL]);
 
-  // Profile Update Handler (JS Version)
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setIsUpdating(true);
     try {
-      const response = await api.patch(`/users/${encodeURIComponent(user.email)}`, {
+      await api.patch(`/users/${encodeURIComponent(user.email)}`, {
         displayName: name,
         photoURL: photo
       });
 
-      if (response.data) {
-        if (updateUserProfile) {
-          await updateUserProfile({ displayName: name, photoURL: photo });
-        }
-        alert("Profile updated successfully!");
-        window.location.reload();
+      if (updateUserProfile) {
+        await updateUserProfile(name, photo);
       }
+
+      alert("Profile updated successfully!");
+      window.location.reload();
     } catch (err) {
       console.error(err);
       alert("Failed to update profile.");
-    } 
-    finally {
+    } finally {
       setIsUpdating(false);
     }
   };
@@ -220,27 +217,10 @@ function BuyerDashboard({ activeTab }) {
 
   return (
     <div className="space-y-6">
-      {/* Activity Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#1e293b]/40 border border-slate-800 p-5 rounded-2xl">
-          <span className="text-xs text-slate-400 font-bold uppercase">Total Orders</span>
-          <h2 className="text-3xl font-black text-cyan-400 mt-1">{orders.length}</h2>
-        </div>
-        <div className="bg-[#1e293b]/40 border border-slate-800 p-5 rounded-2xl">
-          <span className="text-xs text-slate-400 font-bold uppercase">Wishlist Items</span>
-          <h2 className="text-3xl font-black text-rose-400 mt-1">{wishlist.length}</h2>
-        </div>
-        <div className="bg-[#1e293b]/40 border border-slate-800 p-5 rounded-2xl">
-          <span className="text-xs text-slate-400 font-bold uppercase">Recent Purchases</span>
-          <h2 className="text-3xl font-black text-emerald-400 mt-1">
-            {orders.filter(o => (o.orderStatus || o.status)?.toLowerCase() === "delivered").length}
-          </h2>
-        </div>
-      </div>
-
+      {/* 1. MY ORDERS TAB */}
       {activeTab === "myOrders" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
-          <h3 className="font-bold text-lg mb-4">My Orders & Tracking</h3>
+          <h3 className="font-bold text-lg mb-4">My Orders</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -248,26 +228,20 @@ function BuyerDashboard({ activeTab }) {
                   <th className="py-3 px-4">Item</th>
                   <th className="py-3 px-4">Price</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-center">Transaction ID</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
                 {orders.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="text-center py-6 text-slate-500">No orders found.</td>
-                  </tr>
+                  <tr><td colSpan="3" className="text-center py-6 text-slate-500">No orders placed yet.</td></tr>
                 ) : (
-                  orders.map(order => (
-                    <tr key={order._id}>
-                      <td className="py-3 px-4 font-semibold">{order.productTitle || order.title || "Product"}</td>
-                      <td className="py-3 px-4 text-[#06b6d4]">৳{order.amount || order.price}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2.5 py-1 rounded-full text-xs bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 capitalize font-medium">
-                          {order.orderStatus || order.status || "Processing"}
+                  orders.map(ord => (
+                    <tr key={ord._id}>
+                      <td className="py-3 px-4 font-semibold">{ord.productTitle || ord.title}</td>
+                      <td className="py-3 px-4 text-[#06b6d4]">৳{ord.amount || ord.price}</td>
+                      <td className="py-3 px-4 capitalize text-xs">
+                        <span className="bg-slate-800 text-cyan-400 px-2.5 py-1 rounded-full border border-cyan-500/20">
+                          {ord.orderStatus || ord.status || "Processing"}
                         </span>
-                      </td>
-                      <td className="py-3 px-4 text-center font-mono text-xs text-slate-400">
-                        {order.transactionId || "N/A"}
                       </td>
                     </tr>
                   ))
@@ -278,23 +252,21 @@ function BuyerDashboard({ activeTab }) {
         </div>
       )}
 
+      {/* 2. WISHLIST TAB */}
       {activeTab === "wishlist" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
           <h3 className="font-bold text-lg mb-4">My Wishlist</h3>
           {wishlist.length === 0 ? (
-            <p className="text-sm text-slate-500">Your wishlist is empty.</p>
+            <p className="text-slate-500 text-sm">Your wishlist is empty.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {wishlist.map(item => (
-                <div key={item._id} className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-800 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <img src={item.image || item.images?.[0] || "https://placehold.co/100"} alt="" className="w-12 h-12 rounded-lg object-cover" />
-                    <div>
-                      <h4 className="font-semibold text-sm">{item.title || item.name}</h4>
-                      <p className="text-xs text-[#06b6d4] font-bold">৳{item.price}</p>
-                    </div>
+                <div key={item._id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold text-sm">{item.productTitle || item.title}</h4>
+                    <p className="text-[#06b6d4] text-xs font-bold mt-1">৳{item.price}</p>
                   </div>
-                  <button onClick={() => handleRemoveWishlist(item._id)} className="text-rose-400 p-2 hover:bg-rose-500/10 rounded-lg cursor-pointer">
+                  <button onClick={() => handleRemoveWishlist(item._id)} className="text-rose-400 hover:bg-rose-500/10 p-2 rounded-lg cursor-pointer">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -304,9 +276,10 @@ function BuyerDashboard({ activeTab }) {
         </div>
       )}
 
+      {/* 3. PAYMENT HISTORY TAB */}
       {activeTab === "payments" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
-          <h3 className="font-bold text-lg mb-4">Payment History & Transactions</h3>
+          <h3 className="font-bold text-lg mb-4">Payment History</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -318,15 +291,13 @@ function BuyerDashboard({ activeTab }) {
               </thead>
               <tbody className="divide-y divide-slate-800/50">
                 {payments.length === 0 ? (
-                  <tr>
-                    <td colSpan="3" className="text-center py-6 text-slate-500">No payment records found.</td>
-                  </tr>
+                  <tr><td colSpan="3" className="text-center py-6 text-slate-500">No payment history found.</td></tr>
                 ) : (
                   payments.map(pay => (
                     <tr key={pay._id}>
-                      <td className="py-3 px-4 font-mono text-xs text-cyan-400">{pay.transactionId}</td>
-                      <td className="py-3 px-4 font-bold">৳{pay.amount}</td>
-                      <td className="py-3 px-4 text-xs text-slate-400">{new Date(pay.date || Date.now()).toLocaleDateString()}</td>
+                      <td className="py-3 px-4 font-mono text-xs text-slate-400">{pay.transactionId || pay._id}</td>
+                      <td className="py-3 px-4 text-[#06b6d4] font-bold">৳{pay.amount}</td>
+                      <td className="py-3 px-4 text-xs text-slate-400">{pay.date ? new Date(pay.date).toLocaleDateString() : "N/A"}</td>
                     </tr>
                   ))
                 )}
@@ -336,6 +307,7 @@ function BuyerDashboard({ activeTab }) {
         </div>
       )}
 
+      {/* 4. PROFILE MANAGEMENT TAB */}
       {activeTab === "profile" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl max-w-xl">
           <h3 className="font-bold text-lg mb-4">Profile Management</h3>

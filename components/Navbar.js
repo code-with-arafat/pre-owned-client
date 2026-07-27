@@ -6,7 +6,7 @@ import { ShoppingBag, LogOut, User, LayoutDashboard, Menu, X } from "lucide-reac
 import { useState } from "react";
 
 export default function Navbar() {
-  const { user, logoutUser } = useAuth();
+  const { user, logOut } = useAuth(); // 🛠️ logoutUser এর বদলে logOut ব্যবহার করা হলো
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -28,11 +28,9 @@ export default function Navbar() {
 
           {/* DESKTOP NAV LINKS */}
           <div className="hidden md:flex items-center space-x-8 text-sm font-medium tracking-wide">
-
             <Link href="/" className="text-slate-300 hover:text-[#06b6d4] transition-colors">Home</Link>
             <Link href="/products" className="text-slate-300 hover:text-[#06b6d4] transition-colors">Products</Link>
             <Link href="#" className="text-slate-300 hover:text-[#06b6d4] transition-colors">Blogs</Link>
-
           </div>
 
           {/* DYNAMIC AUTH SECTION (DESKTOP) */}
@@ -63,8 +61,8 @@ export default function Navbar() {
                 {/* Logout Button */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
-                  onClick={logoutUser}
-                  className="p-2 bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 rounded-full border border-slate-700 hover:border-rose-900/50 transition-all"
+                  onClick={logOut}
+                  className="p-2 bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400 rounded-full border border-slate-700 hover:border-rose-900/50 transition-all cursor-pointer"
                   title="Logout"
                 >
                   <LogOut className="h-4 w-4" />
@@ -126,7 +124,7 @@ export default function Navbar() {
                     <LayoutDashboard className="h-4 w-4" />
                     <span>Dashboard</span>
                   </Link>
-                  <button onClick={() => { logoutUser(); setIsOpen(false); }} className="flex items-center space-x-2 w-full justify-center bg-rose-950/40 border border-rose-900 text-rose-400 py-2.5 rounded-lg text-xs uppercase tracking-wider">
+                  <button onClick={() => { logOut(); setIsOpen(false); }} className="flex items-center space-x-2 w-full justify-center bg-rose-950/40 border border-rose-900 text-rose-400 py-2.5 rounded-lg text-xs uppercase tracking-wider cursor-pointer">
                     <LogOut className="h-4 w-4" />
                     <span>Logout</span>
                   </button>

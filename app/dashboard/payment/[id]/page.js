@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import axios from "axios";
-import { useAuth } from "../../../../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 // লাইভ ব্যাকএন্ড বেইজ ইউআরএল
 const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";

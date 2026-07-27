@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,7 +9,6 @@ import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth"; 
 import api from "@/utils/api"; 
 
-// ডেমো ডেটা: ক্যাটাগরি লিস্ট
 const categories = [
   { id: 1, name: "Smartphones", icon: Smartphone, count: "120+ Items", color: "from-emerald-500/20 to-teal-500/10", border: "hover:border-emerald-500/50" },
   { id: 2, name: "Laptops", icon: Laptop, count: "85+ Items", color: "from-cyan-500/20 to-blue-500/10", border: "hover:border-cyan-500/50" },
@@ -43,7 +43,7 @@ const advertisedProducts = [
 export default function HomePage() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [user, setUser] = useState(null);
-  const [sellerAlert, setSellerAlert] = useState(false); // Modal/Alert state for buyer
+  const [sellerAlert, setSellerAlert] = useState(false);
   const router = useRouter();
   const auth = getAuth();
 
@@ -54,33 +54,28 @@ export default function HomePage() {
     return () => unsubscribe();
   }, [auth]);
 
-  // বুকিং বাটন লগইন চেক লজিক
   const handleBookingClick = (product) => {
     if (!user) {
-      router.push("/login"); // লগআউট থাকলে লগইন পেজে রিডাইরেক্ট
+      router.push("/login");
     } else {
-      setSelectedProduct(product); // লগইন থাকলে মডাল ওপেন হবে
+      setSelectedProduct(product);
     }
   };
 
-  // Sell Your Gadget বাটনের ইন্টেলিজেন্ট রাউটিং ও মডাল লজিক
   const handleSellRedirect = async (e) => {
     e.preventDefault();
     
-    // ১. ইউজার লগইন না থাকলে সরাসরি লগইন পেজে
     if (!user) {
       router.push("/login");
       return;
     }
 
-    // ২. ইউজার লগইন থাকলে তার রোল চেক করা হচ্ছে
     try {
-      const response = await api.get(`/users/email/${encodeURIComponent(user.email)}`);
+      const response = await api.get(`/users/role/${encodeURIComponent(user.email)}`);
       
       if (response.data && response.data.role === "seller") {
-        router.push("/dashboard/add-product"); // সেলার হলে ড্যাশবোর্ডে প্রোডাক্ট ফর্ম
+        router.push("/dashboard/add-product");
       } else {
-        // বায়ার বা অন্য অ্যাকাউন্ট হলে পপআপ মেসেজ শো করবে
         setSellerAlert(true);
       }
     } catch (error) {
@@ -91,7 +86,6 @@ export default function HomePage() {
 
   return (
     <div className="bg-[#0f172a] text-slate-100 min-h-screen font-sans overflow-hidden">
-
       {/* 1. HERO SECTION */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center lg:pt-32">
         <div className="absolute inset-0 -z-10 flex items-center justify-center">
@@ -142,7 +136,7 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* sellerAlert Modal/Popup */}
+      {/* SELLER ALERT MODAL */}
       <AnimatePresence>
         {sellerAlert && (
           <motion.div 
@@ -261,7 +255,7 @@ export default function HomePage() {
                   </div>
 
                   <motion.button
-                    onClick={() => handleBookingClick(product)} // আপডেট করা বুকিং ক্লিক হ্যান্ডলার
+                    onClick={() => handleBookingClick(product)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all flex items-center space-x-1 cursor-pointer"

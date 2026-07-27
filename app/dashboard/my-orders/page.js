@@ -28,6 +28,7 @@ export default function MyOrdersPage() {
         .get(`${BACKEND_URL}/payments?email=${encodeURIComponent(user.email)}`, config)
         .then((res) => {
           if (isMounted) {
+            console.log("MY BACKEND ORDER DATA:", res.data);
             setOrders(Array.isArray(res.data) ? res.data : []);
             setLoading(false);
           }

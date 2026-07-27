@@ -39,17 +39,28 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ৪. প্রোফাইল আপডেট (নাম ও প্রোফাইল পিকচার)
-  const updateUserProfile = (name, photo) => {
-    return updateProfile(auth.currentUser, {
+  const updateUserProfile = async (name, photo) => {
+    if (!auth.currentUser) return;
+    await updateProfile(auth.currentUser, {
       displayName: name,
       photoURL: photo,
     });
+    // লোকাল ইউজার স্টেট ইনস্ট্যান্ট আপডেট করার জন্য
+    setUser({ ...auth.currentUser });
   };
 
-  // ৫. লগআউট
-  const logOut = () => {
+  // ৫. লগআউট (টোকেন ক্লিনআপসহ)
+  const logOut = async () => {
     setLoading(true);
-    return signOut(auth);
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("access-token");
+      }
+      return await signOut(auth);
+    } catch (error) {
+      console.error("Logout failed:", error);
+      setLoading(false);
+    }
   };
 
   // ৬. ইউজার স্টেট অবজার্ভার

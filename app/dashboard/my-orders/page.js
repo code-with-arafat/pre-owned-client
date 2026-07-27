@@ -28,7 +28,6 @@ export default function MyOrdersPage() {
         .get(`${BACKEND_URL}/payments?email=${encodeURIComponent(user.email)}`, config)
         .then((res) => {
           if (isMounted) {
-            console.log("MY BACKEND ORDER DATA:", res.data);
             setOrders(Array.isArray(res.data) ? res.data : []);
             setLoading(false);
           }
@@ -118,24 +117,25 @@ export default function MyOrdersPage() {
         {!error && orders.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {orders.map((order) => {
-              // প্রোডাক্ট টাইটেল ফেইলসেফ লজিক
+              // items অ্যারে থেকে প্রথম আইটেমটি নিরাপদে ফেচ করা
+              const firstItem = Array.isArray(order.items) && order.items.length > 0 ? order.items[0] : {};
+
+              // প্রোডাক্ট টাইটেল (items বা রুট লেভেল থেকে)
               const title =
+                firstItem.title ||
+                firstItem.name ||
+                firstItem.productTitle ||
                 order.productTitle ||
-                order.productName ||
                 order.title ||
-                order.name ||
-                order.productDetails?.title ||
-                order.productDetails?.name ||
-                order.productId?.title ||
                 "Purchased Item";
 
-              // প্রোডাক্ট ইমেজ ফেইলসেফ লজিক
+              // প্রোডাক্ট ইমেজ (items বা রুট লেভেল থেকে)
               const imageSrc =
+                firstItem.image ||
+                firstItem.productImage ||
+                (Array.isArray(firstItem.images) && firstItem.images[0]) ||
                 order.productImage ||
                 order.image ||
-                (Array.isArray(order.images) && order.images[0]) ||
-                order.productDetails?.image ||
-                order.productDetails?.images?.[0] ||
                 null;
 
               return (
@@ -167,19 +167,19 @@ export default function MyOrdersPage() {
 
                     <div className="text-xs text-slate-400 mt-1 flex flex-col gap-0.5">
                       <p>
-                        Transaction ID:{" "}
+                        Order ID:{" "}
                         <span className="font-mono text-cyan-400 bg-cyan-950/40 px-1.5 py-0.5 rounded border border-cyan-800/50">
-                          {order.transactionId || order._id?.slice(-8) || "N/A"}
+                          {order.orderId || order.transactionId?.slice(-10) || "N/A"}
                         </span>
                       </p>
                     </div>
 
                     <div className="flex items-center justify-between mt-3">
                       <p className="text-emerald-400 font-extrabold text-lg">
-                        BDT {order.amount || order.price ? Number(order.amount || order.price).toLocaleString() : "0"}
+                        BDT {order.amount ? Number(order.amount).toLocaleString() : "0"}
                       </p>
                       <span className="text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full capitalize">
-                        {order.paymentStatus || order.status || "Paid"}
+                        {order.paymentStatus || "Paid"}
                       </span>
                     </div>
                   </div>

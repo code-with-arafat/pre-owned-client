@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { 
-  getAuth, 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signInWithPopup, 
@@ -11,10 +10,10 @@ import {
   updateProfile, 
   onAuthStateChanged 
 } from "firebase/auth";
-import app from "@/firebase.config"; // আপনার ফায়ারবেস কনফিগ ফাইল পাথ
+// 🛠️ সরাসরি আপনার firebase.config থেকে auth ইমপোর্ট করা হলো
+import { auth } from "@/firebase.config";
 
 export const AuthContext = createContext(null);
-const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 export const AuthProvider = ({ children }) => {
@@ -81,7 +80,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// 🔴 এই হুকটির জন্য পেমেন্ট পেজে import { useAuth } কাজ করবে
+// custom hook export
 export const useAuth = () => {
   const context = useContext(AuthContext);
   return context;

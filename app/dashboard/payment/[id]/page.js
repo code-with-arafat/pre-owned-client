@@ -24,12 +24,18 @@ const CheckoutForm = ({ product, user }) => {
   const [processing, setProcessing] = useState(false);
   const [transactionId, setTransactionId] = useState("");
 
-  const productPrice = product?.price || product?.resalePrice || 0;
+  // ১. প্রাইস নিশ্চিতভাবে Number এ রূপান্তর করা হলো
+  const productPrice = Number(product?.resalePrice || product?.price || 0);
 
   useEffect(() => {
-    if (productPrice > 0) {
+    // ২. নিশ্চিত হওয়া হচ্ছে price যেন 0 বা NaN না হয়
+    if (productPrice > 0 && !isNaN(productPrice)) {
       axios.post(`${BACKEND_URL}/create-payment-intent`, { price: productPrice })
-        .then(res => setClientSecret(res.data.clientSecret))
+        .then(res => {
+          if (res.data?.clientSecret) {
+            setClientSecret(res.data.clientSecret);
+          }
+        })
         .catch(err => console.error("Payment intent creation failed:", err));
     }
   }, [productPrice]);
@@ -37,29 +43,18 @@ const CheckoutForm = ({ product, user }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || !clientSecret) return;
 
     const card = elements.getElement(CardElement);
     if (!card) return;
 
     setProcessing(true);
-
-    const { error: pmError } = await stripe.createPaymentMethod({
-      type: "card",
-      card,
-    });
-
-    if (pmError) {
-      setError(pmError.message);
-      setProcessing(false);
-      return;
-    }
-    
     setError("");
 
+    // ৩. সরাসরি confirmCardPayment ব্যবহার করে কোড ক্লিন করা হলো
     const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
-        card,
+        card: card,
         billing_details: {
           email: user?.email || "anonymous@gmail.com",
           name: user?.displayName || "Anonymous",
@@ -73,7 +68,7 @@ const CheckoutForm = ({ product, user }) => {
       return;
     }
 
-    if (paymentIntent.status === "succeeded") {
+    if (paymentIntent?.status === "succeeded") {
       setTransactionId(paymentIntent.id);
 
       const paymentData = {
@@ -102,7 +97,7 @@ const CheckoutForm = ({ product, user }) => {
 
       try {
         const res = await axios.post(`${BACKEND_URL}/payments`, paymentData);
-        if (res.data?.paymentResult?.insertedId) {
+        if (res.data?.paymentResult?.insertedId || res.data?.insertedId) {
           router.push(`/dashboard/payment-success?transactionId=${paymentIntent.id}&amount=${productPrice}`);
         }
       } catch (err) {

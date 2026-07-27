@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { useAuth } from "@/hooks/useAuth"; // অথবা আপনার প্রজেক্টের সঠিক useAuth পাথ
+import { useAuth } from "@/context/AuthContext";
 
 const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";
 

@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import axios from "axios";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext"; // ✅ পাথ ঠিক করা হয়েছে
 
 // লাইভ ব্যাকএন্ড বেইজ ইউআরএল
 const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";
@@ -15,7 +15,7 @@ const stripePromise = loadStripe(
     "pk_test_51TmnwN1PB5nVIIKFapozwHiy9WiHutnBiRCbi8E9hD9eEGZALE32L7vgiPMvIh9aDHXwt3uj21vnl8Aatuvi9AM900n7dw1Ivo"
 );
 
-// ভেতরের চেক아উট ফর্ম কম্পোনেন্ট
+// ভেতরের চেকআউট ফর্ম কম্পোনেন্ট
 const CheckoutForm = ({ product, user }) => {
     const stripe = useStripe();
     const elements = useElements();
@@ -27,14 +27,15 @@ const CheckoutForm = ({ product, user }) => {
 
     // প্রোডাক্টের দাম অনুযায়ী পেমেন্ট ইন্টেন্ট কল করা
     useEffect(() => {
-        if (product?.price) {
-            axios.post(`${BACKEND_URL}/create-payment-intent`, { price: product.price })
+        const productPrice = product?.price || product?.resalePrice;
+        if (productPrice) {
+            axios.post(`${BACKEND_URL}/create-payment-intent`, { price: productPrice })
                 .then(res => {
                     setClientSecret(res.data.clientSecret);
                 })
                 .catch(err => console.error("Payment Intent Error:", err));
         }
-    }, [product?.price]);
+    }, [product?.price, product?.resalePrice]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -87,10 +88,10 @@ const CheckoutForm = ({ product, user }) => {
             // পেমেন্ট সফল হলে ডাটাবেজে অর্ডার ও পেমেন্ট সেভ করার অবজেক্ট
             const paymentData = {
                 transactionId: paymentIntent.id,
-                amount: product.price,
+                amount: product.price || product.resalePrice || 0,
                 productId: product._id,
                 productTitle: product.title,
-                productImage: product.images?.[0] || "https://placehold.co/150",
+                productImage: product.images?.[0] || product.image || "https://placehold.co/150",
                 buyerId: user?.uid || "temp-buyer-id",
                 buyerName: user?.displayName || "Anonymous",
                 buyerEmail: user?.email || "buyer@mail.com",
@@ -119,7 +120,7 @@ const CheckoutForm = ({ product, user }) => {
             <h2 className="text-lg font-bold mb-4 text-center">Complete Your Payment</h2>
             <div className="mb-4">
                 <p className="text-xs text-slate-400">Product: <span className="text-cyan-400 font-semibold">{product?.title}</span></p>
-                <p className="text-xs text-slate-400">Amount to pay: <span className="text-emerald-400 font-bold">BDT {product?.price}</span></p>
+                <p className="text-xs text-slate-400">Amount to pay: <span className="text-emerald-400 font-bold">BDT {product?.price || product?.resalePrice}</span></p>
             </div>
 
             <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 mb-4">
@@ -149,19 +150,18 @@ const CheckoutForm = ({ product, user }) => {
                 disabled={!stripe || !clientSecret || processing} 
                 className="w-full bg-[#06b6d4] hover:bg-cyan-400 text-slate-900 font-bold py-3 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             >
-                {processing ? "Processing..." : `Pay BDT ${product?.price}`}
+                {processing ? "Processing..." : `Pay BDT ${product?.price || product?.resalePrice}`}
             </button>
         </form>
     );
 };
 
-// মেইন পেমেন্ট পেজ (ডাটা ফেচিং)
+// মেইন পেমেন্ট পেজ
 export default function PaymentPage() {
     const { id } = useParams();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     
-    // 👈 ডামি ইউজার ہটিয়ে দিয়ে সরাসরি Firebase Auth থেকে লগড-ইন ইউজার নেওয়া হলো
     const { user } = useAuth(); 
 
     useEffect(() => {

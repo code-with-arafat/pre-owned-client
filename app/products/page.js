@@ -4,11 +4,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ShieldCheck, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "@/utils/api"; 
-import axios from "axios";
-import { useAuth } from "@/hooks/useAuth"; // ফায়ারবেস রিয়েল ইউজার পাওয়ার জন্য
-
-// ভিএসএল-এর লাইভ ব্যাকএন্ড বেইজ ইউআরএল
-const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";
+import { useAuth } from "@/context/AuthContext"; 
 
 export default function ProductsPage() {
   const router = useRouter(); 
@@ -24,7 +20,6 @@ export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const itemsPerPage = 4; 
 
@@ -61,44 +56,16 @@ export default function ProductsPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [currentPage, searchQuery, selectedCategory, sortOrder]);
 
-  // 🟢 বুক নাউ বাটনে ক্লিক করলে সরাসরি ডাটাবেজে অর্ডার সেভ ও মাই অর্ডারস পেজে রিডাইরেক্ট করার লজিক (পেমেন্ট বাইপাস)
-  const handleBookNow = async (product) => {
+  // 💳 বুক নাউ বাটনে ক্লিক করলে পেমেন্ট পেজে রিডাইরেক্ট করার লজিক
+  const handleBookNow = (product) => {
     if (!user) {
       alert("Please log in first to book a product!");
       router.push("/login"); 
       return;
     }
 
-    setIsProcessing(true);
-    
-    // ডাটাবেজে ডিরেক্ট বুকিং ও অর্ডার সেভ করার অবজেক্ট
-    const bookingData = {
-      transactionId: `BOOKING-${Date.now()}`,
-      amount: product.price || product.resalePrice || 0,
-      productId: product._id,
-      productTitle: product.title,
-      productImage: product.images?.[0] || product.image || "https://placehold.co/150",
-      buyerId: user?.uid || "temp-buyer-id",
-      buyerName: user?.displayName || "Anonymous",
-      buyerEmail: user?.email || "buyer@mail.com",
-      sellerId: product.sellerInfo?.userId || "temp-seller-id",
-      sellerName: product.sellerInfo?.name || "Seller",
-      sellerEmail: product.sellerInfo?.email || "seller@mail.com",
-    };
-
-    try {
-      // সরাসরি ব্যাকএন্ডের পেমেন্ট বা অর্ডার এন্ডপয়েন্টে কল করা হলো
-      const res = await axios.post(`${BACKEND_URL}/payments`, bookingData);
-      if (res.data?.paymentResult?.insertedId) {
-        alert("Booked Successfully! Product added to your orders.");
-        router.push("/dashboard/my-orders");
-      }
-    } catch (err) {
-      console.error("Error saving booking to DB:", err);
-      alert("Failed to place booking. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
+    // পেমেন্ট পেজে আইডি সহ পাঠাবে
+    router.push(`/dashboard/payment/${product._id}`);
   };
 
   return (
@@ -208,12 +175,11 @@ export default function ProductsPage() {
                       <p className="text-base font-black text-emerald-400">৳{(product.price || product.resalePrice || 0).toLocaleString()}</p>
                     </div>
                     <button 
-                      disabled={isProcessing}
                       onClick={() => handleBookNow(product)} 
-                      className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all cursor-pointer flex items-center space-x-1 disabled:opacity-50"
+                      className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all cursor-pointer flex items-center space-x-1"
                     >
                       <ShieldCheck className="h-3.5 w-3.5" />
-                      <span>{isProcessing ? "Booking..." : "Book Now"}</span>
+                      <span>Book Now</span>
                     </button>
                   </div>
                 </div>

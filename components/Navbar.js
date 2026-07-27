@@ -31,7 +31,7 @@ export default function Navbar() {
 
             <Link href="/" className="text-slate-300 hover:text-[#06b6d4] transition-colors">Home</Link>
             <Link href="/products" className="text-slate-300 hover:text-[#06b6d4] transition-colors">Products</Link>
-            <Link href="/blogs" className="text-slate-300 hover:text-[#06b6d4] transition-colors">Blogs</Link>
+            <Link href="#" className="text-slate-300 hover:text-[#06b6d4] transition-colors">Blogs</Link>
 
           </div>
 

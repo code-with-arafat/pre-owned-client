@@ -11,7 +11,7 @@ const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 
-  "pk_test_51TmnwN1PB5nVIIKFapozwHiy9WiHutnBiRCbi8E9hD9eEGZALE32L7vgiPMvIh9aDHXwt3uj21vnl8Aatuvi9AM900n7dw1Ivo"
+  "pk_test_51P6QatJyiW8grYrE6BjAO0JwYYzj53Je1aun3pBVVdHCDWeKwkQjGr19fvT1gAad79H4xZvBrNdv9A12ufFrqOgO002cBsZbum"
 );
 
 const CheckoutForm = ({ product, user }) => {

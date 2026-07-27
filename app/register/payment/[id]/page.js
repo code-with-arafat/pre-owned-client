@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import axios from "axios";
-import { useAuth } from "@/context/AuthContext"; // ✅ পাথ ঠিক করা হয়েছে
+import { useAuth } from "../../../../context/AuthContext";
 
 // লাইভ ব্যাকএন্ড বেইজ ইউআরএল
 const BACKEND_URL = "https://pre-owned-server-seven.vercel.app";
@@ -25,17 +25,18 @@ const CheckoutForm = ({ product, user }) => {
     const [processing, setProcessing] = useState(false);
     const [transactionId, setTransactionId] = useState("");
 
+    const productPrice = product?.price || product?.resalePrice || 0;
+
     // প্রোডাক্টের দাম অনুযায়ী পেমেন্ট ইন্টেন্ট কল করা
     useEffect(() => {
-        const productPrice = product?.price || product?.resalePrice;
-        if (productPrice) {
+        if (productPrice > 0) {
             axios.post(`${BACKEND_URL}/create-payment-intent`, { price: productPrice })
                 .then(res => {
                     setClientSecret(res.data.clientSecret);
                 })
                 .catch(err => console.error("Payment Intent Error:", err));
         }
-    }, [product?.price, product?.resalePrice]);
+    }, [productPrice]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -88,7 +89,7 @@ const CheckoutForm = ({ product, user }) => {
             // পেমেন্ট সফল হলে ডাটাবেজে অর্ডার ও পেমেন্ট সেভ করার অবজেক্ট
             const paymentData = {
                 transactionId: paymentIntent.id,
-                amount: product.price || product.resalePrice || 0,
+                amount: productPrice,
                 productId: product._id,
                 productTitle: product.title,
                 productImage: product.images?.[0] || product.image || "https://placehold.co/150",
@@ -120,7 +121,7 @@ const CheckoutForm = ({ product, user }) => {
             <h2 className="text-lg font-bold mb-4 text-center">Complete Your Payment</h2>
             <div className="mb-4">
                 <p className="text-xs text-slate-400">Product: <span className="text-cyan-400 font-semibold">{product?.title}</span></p>
-                <p className="text-xs text-slate-400">Amount to pay: <span className="text-emerald-400 font-bold">BDT {product?.price || product?.resalePrice}</span></p>
+                <p className="text-xs text-slate-400">Amount to pay: <span className="text-emerald-400 font-bold">BDT {productPrice}</span></p>
             </div>
 
             <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 mb-4">
@@ -150,18 +151,19 @@ const CheckoutForm = ({ product, user }) => {
                 disabled={!stripe || !clientSecret || processing} 
                 className="w-full bg-[#06b6d4] hover:bg-cyan-400 text-slate-900 font-bold py-3 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             >
-                {processing ? "Processing..." : `Pay BDT ${product?.price || product?.resalePrice}`}
+                {processing ? "Processing..." : `Pay BDT ${productPrice}`}
             </button>
         </form>
     );
 };
 
-// মেইন পেমেন্ট পেজ
+// মেইন পেমেন্ট পেজ (ডাটা ফেচিং)
 export default function PaymentPage() {
     const { id } = useParams();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     
+    // কাস্টম অ্থেক্টিকেশন হুক
     const { user } = useAuth(); 
 
     useEffect(() => {

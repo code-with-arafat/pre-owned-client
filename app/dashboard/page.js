@@ -15,10 +15,15 @@ export default function DashboardPage() {
   const router = useRouter();
   
   const userRole = user?.role || "buyer"; 
-  const [activeTab, setActiveTab] = useState(
-    userRole === "admin" ? "adminOverview" : userRole === "seller" ? "listings" : "myOrders"
-  );
+  const [activeTab, setActiveTab] = useState("myOrders");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Sync default tab whenever the user role updates or loads
+  useEffect(() => {
+    if (userRole === "admin") setActiveTab("adminOverview");
+    else if (userRole === "seller") setActiveTab("listings");
+    else setActiveTab("myOrders");
+  }, [userRole]);
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 flex flex-col md:flex-row">
@@ -26,13 +31,7 @@ export default function DashboardPage() {
       {/* MOBILE NAVBAR TOP BAR */}
       <div className="md:hidden flex items-center justify-between p-4 bg-[#1e293b] border-b border-slate-800">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-full bg-[#06b6d4]/20 border border-[#06b6d4] flex items-center justify-center font-bold text-[#06b6d4] text-xs overflow-hidden">
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
-            ) : (
-              user?.displayName?.charAt(0) || "A"
-            )}
-          </div>
+          <Avatar user={user} className="w-8 h-8 text-xs" />
           <span className="text-sm font-bold truncate max-w-[120px]">
             {user?.displayName || "User"}
           </span>
@@ -53,13 +52,7 @@ export default function DashboardPage() {
       `}>
         <div>
           <div className="hidden md:flex items-center space-x-3 pb-6 border-b border-slate-800">
-            <div className="w-10 h-10 rounded-full bg-[#06b6d4]/20 border border-[#06b6d4] overflow-hidden flex items-center justify-center font-bold text-[#06b6d4]">
-              {user?.photoURL ? (
-                <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
-              ) : (
-                user?.displayName?.charAt(0) || "U"
-              )}
-            </div>
+            <Avatar user={user} className="w-10 h-10 text-base" />
             <div>
               <h4 className="text-sm font-bold truncate max-w-[140px]">{user?.displayName || "User"}</h4>
               <span className="text-[10px] bg-cyan-500/10 text-[#06b6d4] border border-cyan-500/20 px-2 py-0.5 rounded-full uppercase font-black tracking-wider block mt-0.5 w-max">
@@ -132,6 +125,28 @@ export default function DashboardPage() {
   );
 }
 
+/* ==========================================
+   SHARED HELPERS & UI COMPONENTS
+   ========================================== */
+function Avatar({ user, className = "w-10 h-10" }) {
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <div className={`${className} rounded-full bg-[#06b6d4]/20 border border-[#06b6d4] flex items-center justify-center font-bold text-[#06b6d4] overflow-hidden flex-shrink-0`}>
+      {user?.photoURL && !imgError ? (
+        <img 
+          src={user.photoURL} 
+          alt={user?.displayName || "User"} 
+          className="w-full h-full object-cover" 
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        user?.displayName?.charAt(0).toUpperCase() || "U"
+      )}
+    </div>
+  );
+}
+
 function SidebarItem({ icon, label, active, onClick }) {
   return (
     <button 
@@ -147,6 +162,22 @@ function SidebarItem({ icon, label, active, onClick }) {
   );
 }
 
+function StatusBadge({ status }) {
+  const formattedStatus = (status || "Processing").toLowerCase();
+  
+  const styles = {
+    processing: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    shipped: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    delivered: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+  };
+
+  return (
+    <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold capitalize ${styles[formattedStatus] || "bg-slate-800 text-cyan-400 border-cyan-500/20"}`}>
+      {status || "Processing"}
+    </span>
+  );
+}
+
 /* ==========================================
    1. BUYER DASHBOARD COMPONENTS
    ========================================== */
@@ -156,7 +187,6 @@ function BuyerDashboard({ activeTab }) {
   const [wishlist, setWishlist] = useState([]);
   const [payments, setPayments] = useState([]);
 
-  // Profile Form States
   const [name, setName] = useState(user?.displayName || "");
   const [photo, setPhoto] = useState(user?.photoURL || "");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -166,17 +196,14 @@ function BuyerDashboard({ activeTab }) {
       setName(user.displayName || "");
       setPhoto(user.photoURL || "");
 
-      // Get Buyer Orders
       api.get(`/orders/buyer/${encodeURIComponent(user.email)}`)
         .then(res => setOrders(res.data || []))
         .catch(() => setOrders([]));
 
-      // Get Buyer Payments History
       api.get(`/payments?email=${encodeURIComponent(user.email)}`)
         .then(res => setPayments(res.data || []))
         .catch(() => setPayments([]));
 
-      // Fetch Wishlist
       api.get(`/wishlist/${encodeURIComponent(user.email)}`)
         .then(res => setWishlist(res.data || []))
         .catch(() => setWishlist([]));
@@ -197,7 +224,6 @@ function BuyerDashboard({ activeTab }) {
       }
 
       alert("Profile updated successfully!");
-      window.location.reload();
     } catch (err) {
       console.error(err);
       alert("Failed to update profile.");
@@ -217,7 +243,6 @@ function BuyerDashboard({ activeTab }) {
 
   return (
     <div className="space-y-6">
-      {/* 1. MY ORDERS TAB */}
       {activeTab === "myOrders" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
           <h3 className="font-bold text-lg mb-4">My Orders</h3>
@@ -238,10 +263,8 @@ function BuyerDashboard({ activeTab }) {
                     <tr key={ord._id}>
                       <td className="py-3 px-4 font-semibold">{ord.productTitle || ord.title}</td>
                       <td className="py-3 px-4 text-[#06b6d4]">৳{ord.amount || ord.price}</td>
-                      <td className="py-3 px-4 capitalize text-xs">
-                        <span className="bg-slate-800 text-cyan-400 px-2.5 py-1 rounded-full border border-cyan-500/20">
-                          {ord.orderStatus || ord.status || "Processing"}
-                        </span>
+                      <td className="py-3 px-4">
+                        <StatusBadge status={ord.orderStatus || ord.status} />
                       </td>
                     </tr>
                   ))
@@ -252,7 +275,6 @@ function BuyerDashboard({ activeTab }) {
         </div>
       )}
 
-      {/* 2. WISHLIST TAB */}
       {activeTab === "wishlist" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
           <h3 className="font-bold text-lg mb-4">My Wishlist</h3>
@@ -276,7 +298,6 @@ function BuyerDashboard({ activeTab }) {
         </div>
       )}
 
-      {/* 3. PAYMENT HISTORY TAB */}
       {activeTab === "payments" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
           <h3 className="font-bold text-lg mb-4">Payment History</h3>
@@ -307,7 +328,6 @@ function BuyerDashboard({ activeTab }) {
         </div>
       )}
 
-      {/* 4. PROFILE MANAGEMENT TAB */}
       {activeTab === "profile" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl max-w-xl">
           <h3 className="font-bold text-lg mb-4">Profile Management</h3>

@@ -444,7 +444,7 @@ function SellerDashboard({ activeTab, setActiveTab }) {
                 ) : (
                   orders.map(ord => (
                     <tr key={ord._id}>
-                      <td className="py-3 px-4 font-semibold">{ord.name || ord.title}</td>
+                      <td className="py-3 px-4 font-semibold">{ord.productTitle || ord.title|| ord.name || "UnTitled Product"}</td>
                       <td className="py-3 px-4 text-slate-400">{ord.buyerInfo?.email || ord.email}</td>
                       <td className="py-3 px-4 text-[#06b6d4]">৳{ord.amount || ord.price}</td>
                       <td className="py-3 px-4">

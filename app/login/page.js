@@ -5,14 +5,20 @@ import { useAuth } from "@/context/AuthContext";
 import Swal from "sweetalert2";
 import { motion } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm();
-  const { loginUser, loginWithGoogle } = useAuth();
+  
+  // 🛠️ AuthContext থেকে সঠিক নামের ফাংশনগুলো ডি estructuring করা হলো
+  const { signIn, googleSignIn } = useAuth();
+  const router = useRouter();
 
   const onSubmit = async (data) => {
     try {
-      await loginUser(data.email, data.password);
+      // 🛠️ signIn কল করা হলো
+      await signIn(data.email, data.password);
+      
       Swal.fire({
         icon: "success",
         title: "Welcome Back!",
@@ -21,10 +27,43 @@ export default function LoginPage() {
         timer: 1500,
         showConfirmButton: false
       });
+
+      // 🛠️ সফলভাবে লগইন হলে ড্যাশবোর্ড বা হোমপেজে পাঠানো
+      router.push("/dashboard"); 
+
     } catch (error) {
+      console.error("Login error detail:", error);
       Swal.fire({
         icon: "error",
         title: "Login Failed",
+        text: error.message || "Invalid email or password",
+        background: "#1e293b",
+        color: "#fff"
+      });
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      // 🛠️ googleSignIn কল করা হলো
+      await googleSignIn();
+      
+      Swal.fire({
+        icon: "success",
+        title: "Welcome Back!",
+        background: "#1e293b",
+        color: "#fff",
+        timer: 1500,
+        showConfirmButton: false
+      });
+
+      router.push("/dashboard");
+
+    } catch (error) {
+      console.error("Google login error detail:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Google Login Failed",
         text: error.message,
         background: "#1e293b",
         color: "#fff"
@@ -93,14 +132,18 @@ export default function LoginPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="w-full py-3 bg-[#06b6d4] hover:bg-[#0891b2] text-slate-900 font-bold text-xs uppercase tracking-widest rounded transition-all shadow-lg mt-2"
+              className="w-full py-3 bg-[#06b6d4] hover:bg-[#0891b2] text-slate-900 font-bold text-xs uppercase tracking-widest rounded transition-all shadow-lg mt-2 cursor-pointer"
             >
               Sign In
             </motion.button>
           </form>
 
           <div className="mt-6 flex flex-col items-center space-y-3">
-            <button onClick={loginWithGoogle} className="text-xs text-slate-400 hover:text-white transition-colors">
+            <button 
+              type="button"
+              onClick={handleGoogleLogin} 
+              className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+            >
               Or Login with Google
             </button>
             <p className="text-xs text-slate-500">

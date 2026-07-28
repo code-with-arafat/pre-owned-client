@@ -12,31 +12,24 @@ import { useRouter } from "next/navigation";
 export default function RegisterPage() {
   const router = useRouter();
   const { register, handleSubmit, formState: { errors } } = useForm();
-  const { createUser, loginWithGoogle, updateUserProfile } = useAuth();
+  const { createUser, googleSignIn, updateUserProfile } = useAuth();
   const [role, setRole] = useState("buyer");
 
-  // ফর্ম সাবমিট হ্যান্ডলার (Firebase + MongoDB Synchronization)
   const onSubmit = async (data) => {
     try {
-      // ১. ফায়ারবেস অ্যাকাউন্ট ক্রিয়েশন
       await createUser(data.email, data.password);
-      
-      // ২. ফায়ারবেস প্রোফাইল আপডেট
       await updateUserProfile(data.name, "https://placehold.co/150");
 
-      // ৩. ডাটাবেজের জন্য অবজেক্ট স্ট্রাকচার তৈরি
       const userData = {
         name: data.name,
         email: data.email,
         photo: "https://placehold.co/150",
-        role: role // ইউজারের সিলেক্ট করা ডাইনামিক রোল
+        role: role
       };
 
-      // ৪. লাইভ এক্সপ্রেস সার্ভার হয়ে মঙ্গোডিবি-তে পুশ
       const response = await api.put("/users", userData);
 
       if (response.data) {
-        // 🟢 অতিরিক্ত সিকিউরিটি: ইউজার যদি সেলার হয়, তবে ডাটাবেজে তার রোল explicitly "seller" আপডেট করুন
         if (role === "seller") {
           await api.patch(`/users/seller/${data.email}`);
         }
@@ -49,7 +42,6 @@ export default function RegisterPage() {
           confirmButtonColor: "#06b6d4"
         });
 
-        // ৫. রোল অনুযায়ী কন্ডিশনাল রিডাইরেক্ট
         if (role === "seller") {
           router.push("/dashboard/add-product");
         } else {
@@ -60,29 +52,27 @@ export default function RegisterPage() {
       Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: error.message,
+        text: error.message || "Registration failed",
         background: "#1e293b",
         color: "#fff"
       });
     }
   };
 
-  // গুগল সাইন আপ হ্যান্ডলার
   const handleGoogleSignUp = async () => {
     try {
-      const result = await loginWithGoogle();
+      const result = await googleSignIn();
       const email = result?.user?.email;
       
       const googleUserData = {
         name: result?.user?.displayName || "Google User",
         email: email,
         photo: result?.user?.photoURL || "https://placehold.co/150",
-        role: role // গুগল লগইনের সময়ও সিলেক্টেড রোল সিঙ্ক হবে
+        role: role
       };
 
       await api.put("/users", googleUserData);
 
-      // 🟢 অতিরিক্ত সিকিউরিটি: গুগল দিয়ে সাইন-আপের সময় সেলার সিলেক্ট করলে রোল আপডেট করুন
       if (role === "seller") {
         await api.patch(`/users/seller/${email}`);
       }
@@ -109,7 +99,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#a7f3d0]/30 p-4 md:p-8">
       <div className="max-w-5xl w-full grid md:grid-cols-2 rounded-3xl overflow-hidden shadow-2xl min-h-[650px]">
 
-        {/* LEFT SIDE: Wavy Mint Gradient & Animated Logo */}
+        {/* LEFT SIDE */}
         <div className="relative bg-gradient-to-tr from-[#059669] via-[#10b981] to-[#6ee7b7] p-12 flex flex-col items-center justify-center overflow-hidden">
           <div className="absolute inset-0 opacity-20">
             <div className="absolute -top-10 -left-10 w-96 h-96 bg-white rounded-full blur-2xl animate-pulse"></div>
@@ -139,7 +129,7 @@ export default function RegisterPage() {
           </motion.div>
         </div>
 
-        {/* RIGHT SIDE: Clean Dark Form */}
+        {/* RIGHT SIDE */}
         <div className="bg-[#1e293b] p-8 sm:p-12 flex flex-col justify-center border-l border-slate-800">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-light text-white tracking-widest uppercase">Register</h2>
@@ -147,7 +137,6 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Name Input */}
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Name</label>
               <input
@@ -159,7 +148,6 @@ export default function RegisterPage() {
               {errors.name && <p className="text-rose-400 text-xs mt-1">{errors.name.message}</p>}
             </div>
 
-            {/* Email Input */}
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</label>
               <input
@@ -171,7 +159,6 @@ export default function RegisterPage() {
               {errors.email && <p className="text-rose-400 text-xs mt-1">{errors.email.message}</p>}
             </div>
 
-            {/* Password Input */}
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Password</label>
               <input
@@ -183,13 +170,11 @@ export default function RegisterPage() {
               {errors.password && <p className="text-rose-400 text-xs mt-1">{errors.password.message}</p>}
             </div>
 
-            {/* Dynamic Role Selector */}
             <div className="space-y-2 text-xs pt-2">
               <label className="font-bold text-slate-400 uppercase tracking-wider block mb-1">
                 Join ReSell Hub As A:
               </label>
               <div className="grid grid-cols-2 gap-4">
-                {/* Buyer Tab */}
                 <div
                   onClick={() => setRole("buyer")}
                   className={`p-3.5 rounded-2xl border text-center font-bold uppercase tracking-wider cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${role === "buyer"
@@ -201,7 +186,6 @@ export default function RegisterPage() {
                   <span>I want to Buy</span>
                 </div>
 
-                {/* Seller Tab */}
                 <div
                   onClick={() => setRole("seller")}
                   className={`p-3.5 rounded-2xl border text-center font-bold uppercase tracking-wider cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${role === "seller"
@@ -215,20 +199,19 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Submit Button */}
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="w-full py-3 bg-[#06b6d4] hover:bg-[#0891b2] text-slate-900 font-bold text-xs uppercase tracking-widest rounded transition-all shadow-lg shadow-cyan-500/10 mt-4"
+              className="w-full py-3 bg-[#06b6d4] hover:bg-[#0891b2] text-slate-900 font-bold text-xs uppercase tracking-widest rounded transition-all shadow-lg shadow-cyan-500/10 mt-4 cursor-pointer"
             >
               Create Account
             </motion.button>
           </form>
 
-          {/* Social Sign In */}
           <div className="mt-6 flex flex-col items-center space-y-3">
             <button
+              type="button"
               onClick={handleGoogleSignUp}
               className="text-xs text-slate-400 hover:text-white transition-colors flex items-center space-x-2 cursor-pointer"
             >

@@ -24,11 +24,10 @@ const CheckoutForm = ({ product, user }) => {
   const [processing, setProcessing] = useState(false);
   const [transactionId, setTransactionId] = useState("");
 
-  // ১. প্রাইস নিশ্চিতভাবে Number এ রূপান্তর করা হলো
+  // ১. প্রাইস নিশ্চিতভাবে Number এ রূপান্তর
   const productPrice = Number(product?.resalePrice || product?.price || 0);
 
   useEffect(() => {
-    // ২. নিশ্চিত হওয়া হচ্ছে price যেন 0 বা NaN না হয়
     if (productPrice > 0 && !isNaN(productPrice)) {
       axios.post(`${BACKEND_URL}/create-payment-intent`, { price: productPrice })
         .then(res => {
@@ -51,7 +50,6 @@ const CheckoutForm = ({ product, user }) => {
     setProcessing(true);
     setError("");
 
-    // ৩. সরাসরি confirmCardPayment ব্যবহার করে কোড ক্লিন করা হলো
     const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
         card: card,
@@ -71,16 +69,34 @@ const CheckoutForm = ({ product, user }) => {
     if (paymentIntent?.status === "succeeded") {
       setTransactionId(paymentIntent.id);
 
+      // 🟢 ব্যাকএন্ড এবং ড্যাশবোর্ডের সাথে মিল রেখে ডাটা অবজেক্ট তৈরি
       const paymentData = {
         transactionId: paymentIntent.id,
+        
+        // ড্যাশবোর্ডে সরাসরি অ্যাক্সেস করার জন্য ফ্ল্যাট ফিল্ডস
+        productId: product?._id,
+        productTitle: product?.title || product?.name || "Untitled Product",
+        productImage: product?.images?.[0] || product?.image || "https://placehold.co/150",
+        
+        // বায়ার ইনফো
         buyerId: user?.uid || "temp-buyer-id",
         buyerName: user?.displayName || "Anonymous",
         buyerEmail: user?.email || "buyer@mail.com",
+        
+        // সেলার ইনফো
+        sellerId: product?.sellerInfo?.userId || "temp-seller-id",
+        sellerName: product?.sellerInfo?.name || "Seller",
+        sellerEmail: product?.sellerInfo?.email || "seller@mail.com",
+        
+        // অর্ডার ও পেমেন্ট স্ট্যাটাস
         orderId: `ORDER-${Date.now()}`,
         amount: productPrice,
         paymentStatus: "Paid",
+        orderStatus: "processing", // ড্যাশবোর্ডে স্ট্যাটাস দেখানোর জন্য
         paymentMethod: "Stripe",
         paymentDate: new Date().toISOString(),
+
+        // নিরাপদ থাকার জন্য array structured items-ও ব্যাকআপ রাখা হলো
         items: [
           {
             productId: product?._id,
@@ -90,9 +106,6 @@ const CheckoutForm = ({ product, user }) => {
             quantity: 1,
           }
         ],
-        sellerId: product?.sellerInfo?.userId || "temp-seller-id",
-        sellerName: product?.sellerInfo?.name || "Seller",
-        sellerEmail: product?.sellerInfo?.email || "seller@mail.com",
       };
 
       try {

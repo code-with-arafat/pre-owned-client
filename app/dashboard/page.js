@@ -261,7 +261,7 @@ function BuyerDashboard({ activeTab }) {
                 ) : (
                   orders.map(ord => (
                     <tr key={ord._id}>
-                      <td className="py-3 px-4 font-semibold">{ord.title || ord.productTitle}</td>
+                      <td className="py-3 px-4 font-semibold">{ord.title || ord.productTitle||"No Title"}</td>
                       <td className="py-3 px-4 text-[#06b6d4]">৳{ord.amount || ord.price}</td>
                       <td className="py-3 px-4">
                         <StatusBadge status={ord.orderStatus || ord.status} />

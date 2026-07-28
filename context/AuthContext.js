@@ -10,8 +10,8 @@ import {
   updateProfile, 
   onAuthStateChanged 
 } from "firebase/auth";
-// 🛠️ সরাসরি আপনার firebase.config থেকে auth ইমপোর্ট করা হলো
 import { auth } from "@/firebase.config";
+import api from "@/utils/api"; // আপনার Axios/API হেলপার ইমপোর্ট করুন
 
 export const AuthContext = createContext(null);
 const googleProvider = new GoogleAuthProvider();
@@ -45,8 +45,13 @@ export const AuthProvider = ({ children }) => {
       displayName: name,
       photoURL: photo,
     });
-    // লোকাল ইউজার স্টেট ইনস্ট্যান্ট আপডেট করার জন্য
-    setUser({ ...auth.currentUser });
+    
+    // আগের স্টেট ঠিক রেখে নাম ও ছবি লোকালি আপডেট
+    setUser((prevUser) => 
+      prevUser 
+        ? { ...prevUser, displayName: name, photoURL: photo } 
+        : null
+    );
   };
 
   // ৫. লগআউট (টোকেন ক্লিনআপসহ)
@@ -59,14 +64,34 @@ export const AuthProvider = ({ children }) => {
       return await signOut(auth);
     } catch (error) {
       console.error("Logout failed:", error);
+    } finally {
       setLoading(false);
     }
   };
 
-  // ৬. ইউজার স্টেট অবজার্ভার
+  // 🛠️ ৬. ইউজার স্টেট অবজার্ভার (FIXED: MongoDB থেকে Role ফেচ করা হচ্ছে)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser?.email) {
+        try {
+          // MongoDB ব্যাকএন্ড থেকে ইউজারের ডাটা আনুন
+          const res = await api.get(`/users/${encodeURIComponent(currentUser.email)}`);
+          const dbUser = res.data;
+
+          // Firebase User এর সাথে MongoDB Role ও ডাটা মার্জ করে সেট করা হলো
+          setUser({
+            ...currentUser,
+            role: dbUser?.role || "buyer", // MongoDB থেকে পাওয়া রোল (admin / seller / buyer)
+            dbData: dbUser
+          });
+        } catch (error) {
+          console.error("MongoDB user role fetch failed:", error);
+          // কোনো কারণে ব্যাকএন্ড ফেল করলে ডিফল্ট ফায়ারবেজ ইউজার সেট থাকবে
+          setUser(currentUser);
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
 
@@ -91,8 +116,11 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// custom hook export
+// Custom Hook Export
 export const useAuth = () => {
   const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
   return context;
 };

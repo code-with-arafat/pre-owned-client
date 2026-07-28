@@ -261,7 +261,7 @@ function BuyerDashboard({ activeTab }) {
                 ) : (
                   orders.map(ord => (
                     <tr key={ord._id}>
-                      <td className="py-3 px-4 font-semibold">{ord.productTitle || ord.title}</td>
+                      <td className="py-3 px-4 font-semibold">{ord.name || ord.title}</td>
                       <td className="py-3 px-4 text-[#06b6d4]">৳{ord.amount || ord.price}</td>
                       <td className="py-3 px-4">
                         <StatusBadge status={ord.orderStatus || ord.status} />
@@ -285,7 +285,7 @@ function BuyerDashboard({ activeTab }) {
               {wishlist.map(item => (
                 <div key={item._id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
                   <div>
-                    <h4 className="font-semibold text-sm">{item.productTitle || item.title}</h4>
+                    <h4 className="font-semibold text-sm">{item.name || item.title}</h4>
                     <p className="text-[#06b6d4] text-xs font-bold mt-1">৳{item.price}</p>
                   </div>
                   <button onClick={() => handleRemoveWishlist(item._id)} className="text-rose-400 hover:bg-rose-500/10 p-2 rounded-lg cursor-pointer">

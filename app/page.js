@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Laptop, Smartphone, Watch, ArrowRight, Sparkles, ShieldCheck, Zap, AlertCircle,
-  Car, Shirt, Armchair, Users, ShoppingBag, CheckCircle, Leaf, Recycle, Award, Star, Quote
+  Car, Shirt, Armchair, Users, ShoppingBag, CheckCircle, Leaf, Recycle, Award, Star
 } from "lucide-react";
 import BookingModal from "@/components/BookingModal";
 import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import api from "@/utils/api";
 
-// 1. DYNAMIC CATEGORIES ACCORDING TO REQUIREMENTS
+// 1. DYNAMIC CATEGORIES
 const categories = [
   { id: 1, name: "Electronics", icon: Laptop, count: "180+ Items", color: "from-cyan-500/20 to-blue-500/10", border: "hover:border-cyan-500/50" },
   { id: 2, name: "Mobile Phones", icon: Smartphone, count: "240+ Items", color: "from-emerald-500/20 to-teal-500/10", border: "hover:border-emerald-500/50" },
@@ -35,7 +35,7 @@ const successStories = [
     id: 2,
     name: "Sabrina Islam",
     role: "Happy Buyer",
-    story: "একদম নতুন অবস্থার একটি iPhone ১৪ প্রসেসিং ফাস্ট ডেলিভারিসহ পেয়েছি। দাম বাজারমূল্যের চেয়ে অনেক কম ছিল!",
+    story: "একদম নতুন অবস্থার একটি iPhone ১৪ প্রসেসিং ফাস্ট ডেলিভারিসহ পেয়েছি। দাম বাজারমূল্যের চেয়ে অনেক কম ছিল!",
     rating: 5,
     avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=200&auto=format&fit=crop"
   }
@@ -253,7 +253,7 @@ export default function HomePage() {
         )}
       </AnimatePresence>
 
-      {/* 2. FEATURED PRODUCTS SECTION (DYNAMIC) */}
+      {/* 2. FEATURED PRODUCTS SECTION (UPDATED) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-slate-800/60">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 text-center md:text-left">
           <div>
@@ -272,7 +272,7 @@ export default function HomePage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="h-64 bg-slate-800/40 rounded-2xl animate-pulse border border-slate-800"></div>
+              <div key={n} className="h-80 bg-slate-800/40 rounded-2xl animate-pulse border border-slate-800"></div>
             ))}
           </div>
         ) : (
@@ -283,54 +283,89 @@ export default function HomePage() {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            {featuredProducts.map((product) => (
-              <motion.div
-                key={product._id || product.id}
-                variants={fadeInUp}
-                whileHover={{ y: -6 }}
-                className="bg-[#1e293b]/40 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-md transition-all group"
-              >
-                <div>
-                  <div className="w-full h-48 rounded-xl overflow-hidden bg-slate-900 border border-slate-800 relative mb-4">
-                    <img
-                      src={
-                        product.images?.[0] ||
-                        product.image ||
-                        product.productImage ||
-                        "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=600&auto=format&fit=crop"
-                      }
-                      alt={product.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
+            {featuredProducts.map((product) => {
+              const productId = product._id || product.id;
+              const title = product.title || product.productName || product.name || "Untitled Product";
+              const image =
+                product.images?.[0] ||
+                product.image ||
+                product.productImage ||
+                "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=600&auto=format&fit=crop";
+              const currentPrice = product.price || product.resalePrice || 0;
+              const originalPrice = product.originalPrice || Math.round(currentPrice * 1.25);
 
-                  <h3 className="text-lg font-bold text-slate-100 group-hover:text-cyan-400 transition-colors line-clamp-1">{product.title}</h3>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-2">{product.description || "Certified pre-owned product in great condition."}</p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between">
+              return (
+                <motion.div
+                  key={productId}
+                  variants={fadeInUp}
+                  whileHover={{ y: -6 }}
+                  className="bg-[#1e293b]/40 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-md transition-all group shadow-lg"
+                >
                   <div>
-                    <span className="text-xs text-slate-500 line-through">৳{product.originalPrice || (product.price * 1.2)}</span>
-                    <p className="text-xl font-black text-emerald-400">৳{product.price || product.resalePrice}</p>
+                    {/* Image & Badges */}
+                    <Link href={`/products/${productId}`}>
+                      <div className="w-full h-52 rounded-xl overflow-hidden bg-slate-900 border border-slate-800 relative mb-4 cursor-pointer">
+                        <img
+                          src={image}
+                          alt={title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        {product.category && (
+                          <span className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-cyan-400 text-[10px] font-bold px-2.5 py-1 rounded-md border border-slate-700 uppercase tracking-wider">
+                            {product.category}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+
+                    {/* Title & Description */}
+                    <Link href={`/products/${productId}`}>
+                      <h3 className="text-lg font-bold text-slate-100 group-hover:text-cyan-400 transition-colors line-clamp-1 cursor-pointer">
+                        {title}
+                      </h3>
+                    </Link>
+                    <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
+                      {product.description || "Certified pre-owned product in great condition."}
+                    </p>
                   </div>
 
-                  <motion.button
-                    onClick={() => handleBookingClick(product)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all flex items-center space-x-1 cursor-pointer"
-                  >
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    <span>Book Now</span>
-                  </motion.button>
-                </div>
-              </motion.div>
-            ))}
+                  {/* Pricing & Actions */}
+                  <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                    <div>
+                      {originalPrice > currentPrice && (
+                        <span className="text-xs text-slate-500 line-through block">
+                          ৳{originalPrice}
+                        </span>
+                      )}
+                      <p className="text-xl font-black text-emerald-400">৳{currentPrice}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Link href={`/products/${productId}`}>
+                        <button className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-700 transition-all cursor-pointer">
+                          Details
+                        </button>
+                      </Link>
+
+                      <motion.button
+                        onClick={() => handleBookingClick(product)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all flex items-center space-x-1 cursor-pointer"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        <span>Book</span>
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
       </section>
 
-      {/* 3. POPULAR CATEGORIES SECTION (DYNAMIC) */}
+      {/* 3. POPULAR CATEGORIES SECTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-slate-800/60">
         <div className="text-center md:text-left mb-10">
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Popular Categories</h2>
@@ -470,7 +505,7 @@ export default function HomePage() {
               <Leaf className="w-3.5 h-3.5" />
               <span>Eco-Friendly Choice</span>
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#ffffff] leading-tight">
               Reduce E-Waste & Protect The Planet Through Re-Use
             </h2>
             <p className="text-slate-400 text-sm mt-3 leading-relaxed">

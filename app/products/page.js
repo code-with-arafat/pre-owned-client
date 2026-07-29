@@ -1,8 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; 
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { ShieldCheck, Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShieldCheck, Search, ArrowUpDown, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import api from "@/utils/api"; 
 import { useAuth } from "@/context/AuthContext"; 
 
@@ -154,33 +155,56 @@ export default function ProductsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-[#1e293b]/40 border border-slate-800/80 rounded-3xl overflow-hidden backdrop-blur-md flex flex-col group hover:border-slate-700 transition-all"
               >
-                <div className="h-48 bg-slate-900 overflow-hidden relative">
+                {/* Image linked to Details */}
+                <Link href={`/products/${product._id}`} className="h-48 bg-slate-900 overflow-hidden relative block">
                   <img 
                     src={product.images?.[0] || product.image || "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?q=80&w=600"} 
                     alt={product.title} 
-                    className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                   />
                   <span className="absolute bottom-3 left-3 text-[10px] uppercase font-extrabold bg-slate-900/80 text-cyan-400 border border-slate-700 px-2 rounded-md">
                     {product.condition || "Good"}
                   </span>
-                </div>
+                </Link>
+
                 <div className="p-5 flex flex-col flex-grow justify-between">
                   <div>
                     <span className="text-[9px] text-[#06b6d4] font-black uppercase tracking-widest block mb-1">{product.category}</span>
-                    <h3 className="text-base font-bold text-slate-100 truncate">{product.title}</h3>
+                    
+                    {/* Title linked to Details */}
+                    <Link href={`/products/${product._id}`}>
+                      <h3 className="text-base font-bold text-slate-100 truncate hover:text-cyan-400 transition-colors">
+                        {product.title}
+                      </h3>
+                    </Link>
+                    
                     <p className="text-[11px] text-slate-400 mt-0.5 truncate">Seller: {product.sellerInfo?.name || "Verified Seller"}</p>
                   </div>
-                  <div className="mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between">
+
+                  <div className="mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between gap-2">
                     <div>
                       <p className="text-base font-black text-emerald-400">৳{(product.price || product.resalePrice || 0).toLocaleString()}</p>
                     </div>
-                    <button 
-                      onClick={() => handleBookNow(product)} 
-                      className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all cursor-pointer flex items-center space-x-1"
-                    >
-                      <ShieldCheck className="h-3.5 w-3.5" />
-                      <span>Book Now</span>
-                    </button>
+
+                    <div className="flex items-center gap-2">
+                      {/* Details Page Link Button */}
+                      <Link 
+                        href={`/products/${product._id}`}
+                        className="bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold p-2.5 rounded-xl border border-slate-800 transition-all"
+                        title="View Details"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Link>
+
+                      {/* Book Now Action Button */}
+                      <button 
+                        onClick={() => handleBookNow(product)} 
+                        className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all cursor-pointer flex items-center space-x-1"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        <span>Book Now</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </motion.div>

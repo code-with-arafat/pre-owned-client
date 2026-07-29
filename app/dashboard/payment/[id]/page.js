@@ -69,11 +69,10 @@ const CheckoutForm = ({ product, user }) => {
     if (paymentIntent?.status === "succeeded") {
       setTransactionId(paymentIntent.id);
 
-      // 🟢 ব্যাকএন্ড এবং ড্যাশবোর্ডের সাথে মিল রেখে ডাটা অবজেক্ট তৈরি
+     
       const paymentData = {
         transactionId: paymentIntent.id,
         
-        // ড্যাশবোর্ডে সরাসরি অ্যাক্সেস করার জন্য ফ্ল্যাট ফিল্ডস
         productId: product?._id,
         productTitle: product?.title || product?.name || "Untitled Product",
         productImage: product?.images?.[0] || product?.image || "https://placehold.co/150",
@@ -92,11 +91,11 @@ const CheckoutForm = ({ product, user }) => {
         orderId: `ORDER-${Date.now()}`,
         amount: productPrice,
         paymentStatus: "Paid",
-        orderStatus: "processing", // ড্যাশবোর্ডে স্ট্যাটাস দেখানোর জন্য
+        orderStatus: "processing", 
         paymentMethod: "Stripe",
         paymentDate: new Date().toISOString(),
 
-        // নিরাপদ থাকার জন্য array structured items-ও ব্যাকআপ রাখা হলো
+       
         items: [
           {
             productId: product?._id,

@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Laptop, Smartphone, Watch, ArrowRight, Sparkles, ShieldCheck, Zap, AlertCircle,
   Car, Shirt, Armchair, Users, ShoppingBag, CheckCircle, Leaf, Recycle, Award, Star
 } from "lucide-react";
-import BookingModal from "@/components/BookingModal";
 import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import api from "@/utils/api";
@@ -58,7 +57,6 @@ const staggerContainer = {
 };
 
 export default function HomePage() {
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [user, setUser] = useState(null);
   const [sellerAlert, setSellerAlert] = useState(false);
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -110,14 +108,6 @@ export default function HomePage() {
 
     fetchData();
   }, []);
-
-  const handleBookingClick = (product) => {
-    if (!user) {
-      router.push("/login");
-    } else {
-      setSelectedProduct(product);
-    }
-  };
 
   const handleSellRedirect = async (e) => {
     e.preventDefault();
@@ -219,41 +209,29 @@ export default function HomePage() {
       </section>
 
       {/* SELLER ALERT MODAL */}
-      <AnimatePresence>
-        {sellerAlert && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm px-4"
-          >
-            <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="bg-[#1e293b] border border-slate-800 p-8 rounded-3xl max-w-md w-full text-center shadow-2xl"
-            >
-              <div className="mx-auto bg-amber-500/10 w-16 h-16 flex items-center justify-center rounded-2xl border border-amber-500/20 mb-5">
-                <AlertCircle className="w-8 h-8 text-amber-400" />
-              </div>
-              <h3 className="text-xl font-black text-white">Seller Account Required</h3>
-              <p className="text-slate-400 text-xs mt-2 leading-relaxed">
-                You are currently logged in as a Buyer. Please create or switch to a Seller account first to post your items for sale.
-              </p>
-              <div className="mt-7 flex justify-center gap-3">
-                <button
-                  onClick={() => setSellerAlert(false)}
-                  className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all cursor-pointer border border-slate-700"
-                >
-                  Understood
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {sellerAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm px-4">
+          <div className="bg-[#1e293b] border border-slate-800 p-8 rounded-3xl max-w-md w-full text-center shadow-2xl">
+            <div className="mx-auto bg-amber-500/10 w-16 h-16 flex items-center justify-center rounded-2xl border border-amber-500/20 mb-5">
+              <AlertCircle className="w-8 h-8 text-amber-400" />
+            </div>
+            <h3 className="text-xl font-black text-white">Seller Account Required</h3>
+            <p className="text-slate-400 text-xs mt-2 leading-relaxed">
+              You are currently logged in as a Buyer. Please create or switch to a Seller account first to post your items for sale.
+            </p>
+            <div className="mt-7 flex justify-center gap-3">
+              <button
+                onClick={() => setSellerAlert(false)}
+                className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all cursor-pointer border border-slate-700"
+              >
+                Understood
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* 2. FEATURED PRODUCTS SECTION (UPDATED) */}
+      {/* FEATURED PRODUCTS SECTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-slate-800/60">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 text-center md:text-left">
           <div>
@@ -272,12 +250,12 @@ export default function HomePage() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="h-80 bg-slate-800/40 rounded-2xl animate-pulse border border-slate-800"></div>
+              <div key={n} className="h-96 bg-slate-800/40 rounded-3xl animate-pulse border border-slate-800"></div>
             ))}
           </div>
         ) : (
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
             variants={staggerContainer}
             initial="hidden"
             whileInView="visible"
@@ -298,23 +276,29 @@ export default function HomePage() {
                 <motion.div
                   key={productId}
                   variants={fadeInUp}
-                  whileHover={{ y: -6 }}
-                  className="bg-[#1e293b]/40 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-md transition-all group shadow-lg"
+                  whileHover={{ y: -8 }}
+                  className="bg-slate-900/60 border border-slate-800/80 hover:border-cyan-500/40 rounded-3xl p-5 flex flex-col justify-between backdrop-blur-md transition-all duration-300 group shadow-xl hover:shadow-2xl hover:shadow-cyan-500/5 relative"
                 >
                   <div>
-                    {/* Image & Badges */}
+                    {/* Image Box */}
                     <Link href={`/products/${productId}`}>
-                      <div className="w-full h-52 rounded-xl overflow-hidden bg-slate-900 border border-slate-800 relative mb-4 cursor-pointer">
+                      <div className="w-full h-56 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800/80 relative mb-5 cursor-pointer group-hover:border-slate-700 transition-colors">
                         <img
                           src={image}
                           alt={title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                         />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        
                         {product.category && (
-                          <span className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-cyan-400 text-[10px] font-bold px-2.5 py-1 rounded-md border border-slate-700 uppercase tracking-wider">
+                          <span className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md text-cyan-400 text-[11px] font-semibold px-3 py-1 rounded-full border border-slate-700/80 tracking-wide">
                             {product.category}
                           </span>
                         )}
+                        <span className="absolute top-3 right-3 bg-emerald-500/20 backdrop-blur-md text-emerald-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                          <ShieldCheck className="w-3 h-3" />
+                          <span>Verified</span>
+                        </span>
                       </div>
                     </Link>
 
@@ -324,39 +308,36 @@ export default function HomePage() {
                         {title}
                       </h3>
                     </Link>
-                    <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
-                      {product.description || "Certified pre-owned product in great condition."}
+                    <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                      {product.description || "Certified pre-owned product in great condition. Inspected for quality."}
                     </p>
                   </div>
 
-                  {/* Pricing & Actions */}
-                  <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                  {/* Pricing & Single Action Button */}
+                  <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
                     <div>
-                      {originalPrice > currentPrice && (
-                        <span className="text-xs text-slate-500 line-through block">
-                          ৳{originalPrice}
-                        </span>
-                      )}
-                      <p className="text-xl font-black text-emerald-400">৳{currentPrice}</p>
+                      <span className="text-[11px] text-slate-500 font-medium block">Price</span>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-black text-emerald-400">৳{currentPrice}</p>
+                        {originalPrice > currentPrice && (
+                          <span className="text-xs text-slate-500 line-through">
+                            ৳{originalPrice}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Link href={`/products/${productId}`}>
-                        <button className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-700 transition-all cursor-pointer">
-                          Details
-                        </button>
-                      </Link>
-
+                    {/* Full Interactive Details Button */}
+                    <Link href={`/products/${productId}`}>
                       <motion.button
-                        onClick={() => handleBookingClick(product)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all flex items-center space-x-1 cursor-pointer"
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="bg-gradient-to-r from-slate-800 to-slate-800 hover:from-cyan-500 hover:to-emerald-500 text-slate-200 hover:text-slate-950 text-xs font-bold px-5 py-3 rounded-xl border border-slate-700 hover:border-transparent transition-all duration-300 flex items-center space-x-1.5 shadow-md cursor-pointer"
                       >
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        <span>Book</span>
+                        <span>View Details</span>
+                        <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
                       </motion.button>
-                    </div>
+                    </Link>
                   </div>
                 </motion.div>
               );
@@ -527,16 +508,6 @@ export default function HomePage() {
           </div>
         </motion.div>
       </section>
-
-      {/* BOOKING MODAL */}
-      <AnimatePresence>
-        {selectedProduct && (
-          <BookingModal
-            product={selectedProduct}
-            onClose={() => setSelectedProduct(null)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -2,12 +2,21 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ShoppingCart, PlusCircle, Package, Users, 
   LogOut, BarChart3, Upload, Trash2, ShoppingBag, Menu, X, Heart, CreditCard, User, CheckCircle, Clock
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid
+} from 'recharts';
 import api from "@/utils/api"; 
 
 export default function DashboardPage() {
@@ -397,8 +406,36 @@ function SellerDashboard({ activeTab, setActiveTab }) {
     }
   };
 
+  // 📊 Chart-এর জন্য Order Data কে তারিখ অনুযায়ী Aggregate (Sum) করা
+  const chartData = useMemo(() => {
+    if (!orders || orders.length === 0) return [];
+
+    const groupedData = orders.reduce((acc, order) => {
+      // Order creation date format (e.g. "Jul 28")
+      const rawDate = order.createdAt || order.date || new Date();
+      const dateStr = new Date(rawDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+
+      const amount = Number(order.amount || order.price || 0);
+
+      if (!acc[dateStr]) {
+        acc[dateStr] = { date: dateStr, revenue: 0, ordersCount: 0 };
+      }
+
+      acc[dateStr].revenue += amount;
+      acc[dateStr].ordersCount += 1;
+
+      return acc;
+    }, {});
+
+    return Object.values(groupedData);
+  }, [orders]);
+
   return (
     <div className="space-y-6">
+      {/* Top Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="bg-[#1e293b]/40 border border-slate-800 p-5 rounded-2xl">
           <span className="text-xs text-slate-400 font-bold uppercase">Total Products</span>
@@ -411,7 +448,7 @@ function SellerDashboard({ activeTab, setActiveTab }) {
         <div className="bg-[#1e293b]/40 border border-slate-800 p-5 rounded-2xl">
           <span className="text-xs text-slate-400 font-bold uppercase">Revenue</span>
           <h2 className="text-3xl font-black text-indigo-400 mt-1">
-            ৳{orders.reduce((sum, o) => sum + (o.amount || o.price || 0), 0)}
+            ৳{orders.reduce((sum, o) => sum + Number(o.amount || o.price || 0), 0)}
           </h2>
         </div>
         <div className="bg-[#1e293b]/40 border border-slate-800 p-5 rounded-2xl">
@@ -467,12 +504,54 @@ function SellerDashboard({ activeTab, setActiveTab }) {
         </div>
       )}
 
+      {/* 📊 Dynamic Chart Tab */}
       {activeTab === "analytics" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
-          <h3 className="font-bold text-lg mb-4">Sales Analytics & Charts</h3>
-          <div className="h-64 flex items-center justify-center border border-dashed border-slate-800 rounded-xl text-slate-500">
-            📊 Sales Bar/Line Chart Visualizer
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-lg">Sales Analytics & Trends</h3>
+            <span className="text-xs text-slate-400 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+              Total Revenue Stream
+            </span>
           </div>
+
+          {chartData.length === 0 ? (
+            <div className="h-72 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-xl text-slate-500">
+              <p>No sales data available yet to render charts.</p>
+            </div>
+          ) : (
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#0f172a', 
+                      borderColor: '#1e293b', 
+                      borderRadius: '12px',
+                      color: '#fff' 
+                    }} 
+                    formatter={(value) => [`৳${value}`, 'Revenue']}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="#06b6d4" 
+                    strokeWidth={3}
+                    fillOpacity={1} 
+                    fill="url(#revenueGradient)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -489,7 +568,8 @@ function SellerProductList({ products, setProducts }) {
         alert("Failed to delete product.");
       }
     }
-  };
+  }
+
 
   return (
     <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
@@ -534,15 +614,51 @@ function SellerProductList({ products, setProducts }) {
 function AdminDashboard({ activeTab }) {
   const [users, setUsers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    api.get("/users").then(res => setUsers(res.data || [])).catch(() => {});
-    api.get("/products").then(res => setProducts(res.data?.products || res.data || [])).catch(() => {});
+    // Users Fetching
+    api.get("/users")
+      .then(res => setUsers(res.data || []))
+      .catch(() => {});
+
+    // Products Fetching
+    api.get("/products")
+      .then(res => setProducts(res.data?.products || res.data || []))
+      .catch(() => {});
+
+    // All Orders Fetching
+    api.get("/orders")
+      .then(res => setOrders(res.data || []))
+      .catch(() => {});
   }, []);
+
+  // Product Delete Handler for Admin
+  const handleDeleteProduct = async (id) => {
+    if (confirm("Are you sure you want to delete this product?")) {
+      try {
+        await api.delete(`/products/${id}`);
+        setProducts(prev => prev.filter(p => p._id !== id));
+      } catch (err) {
+        alert("Failed to delete product.");
+      }
+    }
+  };
+
+  // Order Status Update Handler
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await api.patch(`/orders/${orderId}`, { status: newStatus });
+      setOrders(prev => prev.map(o => o._id === orderId ? { ...o, orderStatus: newStatus } : o));
+    } catch (err) {
+      alert("Failed to update status.");
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Top Stat Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-[#1e293b]/40 border border-slate-800 p-5 rounded-2xl">
           <span className="text-xs text-slate-400 font-bold uppercase">Total Users</span>
           <h2 className="text-3xl font-black text-indigo-400 mt-1">{users.length}</h2>
@@ -551,8 +667,13 @@ function AdminDashboard({ activeTab }) {
           <span className="text-xs text-slate-400 font-bold uppercase">Total Products</span>
           <h2 className="text-3xl font-black text-emerald-400 mt-1">{products.length}</h2>
         </div>
+        <div className="bg-[#1e293b]/40 border border-slate-800 p-5 rounded-2xl">
+          <span className="text-xs text-slate-400 font-bold uppercase">Total Orders</span>
+          <h2 className="text-3xl font-black text-cyan-400 mt-1">{orders.length}</h2>
+        </div>
       </div>
 
+      {/* 1. Admin Overview Tab */}
       {activeTab === "adminOverview" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
           <h3 className="font-bold text-lg mb-2">Platform Control & Analytics</h3>
@@ -560,6 +681,7 @@ function AdminDashboard({ activeTab }) {
         </div>
       )}
 
+      {/* 2. Manage Users Tab */}
       {activeTab === "manageUsers" && (
         <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
           <h3 className="font-bold text-lg mb-4">Manage Users</h3>
@@ -585,6 +707,86 @@ function AdminDashboard({ activeTab }) {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Manage Products Tab (যোগ করা হয়েছে) */}
+      {activeTab === "manageProducts" && (
+        <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
+          <h3 className="font-bold text-lg mb-4">Manage Platform Products</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase">
+                  <th className="py-3 px-4">Product</th>
+                  <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">Price</th>
+                  <th className="py-3 px-4 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50">
+                {products.length === 0 ? (
+                  <tr><td colSpan="4" className="text-center py-6 text-slate-500">No products found.</td></tr>
+                ) : (
+                  products.map(p => (
+                    <tr key={p._id}>
+                      <td className="py-3 px-4 font-semibold">{p.title || p.name}</td>
+                      <td className="py-3 px-4 text-slate-400 capitalize">{p.category}</td>
+                      <td className="py-3 px-4 text-[#06b6d4]">৳{p.price}</td>
+                      <td className="py-3 px-4 text-center">
+                        <button onClick={() => handleDeleteProduct(p._id)} className="text-rose-400 p-1.5 hover:bg-rose-500/10 rounded-lg cursor-pointer">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Manage Orders Tab (যোগ করা হয়েছে) */}
+      {activeTab === "manageOrders" && (
+        <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-2xl">
+          <h3 className="font-bold text-lg mb-4">Manage All Platform Orders</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase">
+                  <th className="py-3 px-4">Item</th>
+                  <th className="py-3 px-4">Buyer Email</th>
+                  <th className="py-3 px-4">Amount</th>
+                  <th className="py-3 px-4">Delivery Stage</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50">
+                {orders.length === 0 ? (
+                  <tr><td colSpan="4" className="text-center py-6 text-slate-500">No orders found.</td></tr>
+                ) : (
+                  orders.map(ord => (
+                    <tr key={ord._id}>
+                      <td className="py-3 px-4 font-semibold">{ord.productTitle || ord.title || ord.name || "Untitled Product"}</td>
+                      <td className="py-3 px-4 text-slate-400">{ord.buyerInfo?.email || ord.email}</td>
+                      <td className="py-3 px-4 text-[#06b6d4]">৳{ord.amount || ord.price}</td>
+                      <td className="py-3 px-4">
+                        <select 
+                          value={ord.orderStatus || ord.status || "processing"} 
+                          onChange={(e) => handleUpdateOrderStatus(ord._id, e.target.value)}
+                          className="bg-slate-900 border border-slate-800 text-xs rounded-lg px-3 py-1.5 text-slate-200 capitalize focus:outline-none focus:border-[#06b6d4]"
+                        >
+                          <option value="processing">Processing</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="delivered">Delivered</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

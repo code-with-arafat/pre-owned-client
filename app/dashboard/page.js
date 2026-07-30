@@ -601,9 +601,16 @@ function AddProductForm({ onSuccess }) {
   const { user } = useAuth(); 
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: "", category: "smartphones", condition: "excellent",
-    resalePrice: "", originalPrice: "", yearsOfUse: "",
-    location: "", phone: "", image: "", description: ""
+    name: "", 
+    category: "smartphones", 
+    condition: "excellent",
+    resalePrice: "", 
+    originalPrice: "", 
+    yearsOfUse: "",
+    location: "", 
+    phone: "", 
+    image: "", 
+    description: ""
   });
 
   const handleSubmit = async (e) => {
@@ -611,11 +618,18 @@ function AddProductForm({ onSuccess }) {
     setIsLoading(true);
     try {
       await api.post("/products", {
-        title: formData.name, category: formData.category, condition: formData.condition,
-        price: parseFloat(formData.resalePrice), originalPrice: parseFloat(formData.originalPrice),
-        yearsOfUse: formData.yearsOfUse, location: formData.location, phone: formData.phone,
-        images: [formData.image], description: formData.description,
-        sellerInfo: { email: user?.email, name: user?.displayName }, status: "available"
+        title: formData.name, 
+        category: formData.category, 
+        condition: formData.condition,
+        price: parseFloat(formData.resalePrice), 
+        originalPrice: parseFloat(formData.originalPrice),
+        yearsOfUse: formData.yearsOfUse, 
+        location: formData.location, 
+        phone: formData.phone,
+        images: [formData.image], 
+        description: formData.description,
+        sellerInfo: { email: user?.email, name: user?.displayName }, 
+        status: "available"
       });
       alert("Product added successfully!");
       onSuccess();
@@ -630,34 +644,117 @@ function AddProductForm({ onSuccess }) {
     <div className="bg-[#1e293b]/40 border border-slate-800 p-6 rounded-3xl max-w-3xl">
       <h2 className="text-xl font-bold mb-4">Add New Product</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
+        
+        {/* Product Name */}
         <input 
-          type="text" placeholder="Product Name" required
+          type="text" 
+          placeholder="Product Name" 
+          required
           className="w-full bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#06b6d4]"
-          value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
+          value={formData.name} 
+          onChange={e => setFormData({...formData, name: e.target.value})}
         />
-        <div className="grid grid-cols-2 gap-4">
+
+        {/* Category & Condition */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs text-slate-400 block mb-1 font-semibold">Category</label>
+            <select
+              value={formData.category}
+              onChange={e => setFormData({...formData, category: e.target.value})}
+              className="w-full bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#06b6d4] capitalize"
+            >
+              <option value="smartphones">Smartphones</option>
+              <option value="laptops">Laptops</option>
+              <option value="electronics">Electronics</option>
+              <option value="accessories">Accessories</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-400 block mb-1 font-semibold">Condition</label>
+            <select
+              value={formData.condition}
+              onChange={e => setFormData({...formData, condition: e.target.value})}
+              className="w-full bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#06b6d4] capitalize"
+            >
+              <option value="excellent">Excellent</option>
+              <option value="good">Good</option>
+              <option value="fair">Fair</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Price Inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <input 
-            type="number" placeholder="Resale Price (৳)" required
+            type="number" 
+            placeholder="Resale Price (৳)" 
+            required
             className="w-full bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#06b6d4]"
-            value={formData.resalePrice} onChange={e => setFormData({...formData, resalePrice: e.target.value})}
+            value={formData.resalePrice} 
+            onChange={e => setFormData({...formData, resalePrice: e.target.value})}
           />
           <input 
-            type="number" placeholder="Original Price (৳)" required
+            type="number" 
+            placeholder="Original Price (৳)" 
+            required
             className="w-full bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#06b6d4]"
-            value={formData.originalPrice} onChange={e => setFormData({...formData, originalPrice: e.target.value})}
+            value={formData.originalPrice} 
+            onChange={e => setFormData({...formData, originalPrice: e.target.value})}
           />
         </div>
+
+        {/* Additional Info: Years of use, Phone, Location */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <input 
+            type="text" 
+            placeholder="Years of Use (e.g. 1 year)" 
+            className="w-full bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#06b6d4]"
+            value={formData.yearsOfUse} 
+            onChange={e => setFormData({...formData, yearsOfUse: e.target.value})}
+          />
+          <input 
+            type="text" 
+            placeholder="Phone Number" 
+            className="w-full bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#06b6d4]"
+            value={formData.phone} 
+            onChange={e => setFormData({...formData, phone: e.target.value})}
+          />
+          <input 
+            type="text" 
+            placeholder="Location" 
+            className="w-full bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#06b6d4]"
+            value={formData.location} 
+            onChange={e => setFormData({...formData, location: e.target.value})}
+          />
+        </div>
+
+        {/* Image URL */}
         <input 
-          type="url" placeholder="Image URL" required
+          type="url" 
+          placeholder="Image URL" 
+          required
           className="w-full bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#06b6d4]"
-          value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})}
+          value={formData.image} 
+          onChange={e => setFormData({...formData, image: e.target.value})}
         />
+
+        {/* Description */}
         <textarea 
-          placeholder="Description" required rows={3}
+          placeholder="Description" 
+          required 
+          rows={3}
           className="w-full bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-white focus:outline-none focus:border-[#06b6d4]"
-          value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
+          value={formData.description} 
+          onChange={e => setFormData({...formData, description: e.target.value})}
         />
-        <button disabled={isLoading} className="w-full bg-[#06b6d4] text-slate-950 font-bold py-3 rounded-xl uppercase text-xs tracking-wider cursor-pointer disabled:opacity-50">
+
+        {/* Submit Button */}
+        <button 
+          disabled={isLoading} 
+          className="w-full bg-[#06b6d4] text-slate-950 font-bold py-3 rounded-xl uppercase text-xs tracking-wider cursor-pointer disabled:opacity-50 hover:bg-cyan-500 transition-colors"
+        >
           {isLoading ? "Publishing..." : "Submit Product"}
         </button>
       </form>

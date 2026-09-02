@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Laptop, Smartphone, Watch, ArrowRight, Sparkles, ShieldCheck, Zap, AlertCircle,
-  Car, Shirt, Armchair, Users, ShoppingBag, CheckCircle, Leaf, Recycle, Award, Star
+  Car, Shirt, Armchair, Users, ShoppingBag, CheckCircle, Leaf, Recycle, Award, Star, Tag
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
@@ -271,55 +271,74 @@ export default function HomePage() {
                 "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=600&auto=format&fit=crop";
               const currentPrice = product.price || product.resalePrice || 0;
               const originalPrice = product.originalPrice || Math.round(currentPrice * 1.25);
+              
+              // 🔴 Check if item is Sold Out
+              const isSold = product.status === 'sold';
 
               return (
                 <motion.div
                   key={productId}
                   variants={fadeInUp}
-                  whileHover={{ y: -8 }}
-                  className="bg-slate-900/60 border border-slate-800/80 hover:border-cyan-500/40 rounded-3xl p-5 flex flex-col justify-between backdrop-blur-md transition-all duration-300 group shadow-xl hover:shadow-2xl hover:shadow-cyan-500/5 relative"
+                  whileHover={!isSold ? { y: -8 } : {}}
+                  className={`bg-slate-900/60 border rounded-3xl p-5 flex flex-col justify-between backdrop-blur-md transition-all duration-300 group shadow-xl relative ${
+                    isSold 
+                      ? "border-slate-800/40 opacity-75" 
+                      : "border-slate-800/80 hover:border-cyan-500/40 hover:shadow-2xl hover:shadow-cyan-500/5"
+                  }`}
                 >
                   <div>
                     {/* Image Box */}
-                    <Link href={`/products/${productId}`}>
-                      <div className="w-full h-56 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800/80 relative mb-5 cursor-pointer group-hover:border-slate-700 transition-colors">
-                        <img
-                          src={image}
-                          alt={title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        
-                        {product.category && (
-                          <span className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md text-cyan-400 text-[11px] font-semibold px-3 py-1 rounded-full border border-slate-700/80 tracking-wide">
-                            {product.category}
-                          </span>
-                        )}
+                    <div className="w-full h-56 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800/80 relative mb-5 transition-colors">
+                      <img
+                        src={image}
+                        alt={title}
+                        className={`w-full h-full object-cover transition-transform duration-500 ease-out ${
+                          isSold ? "grayscale opacity-60" : "group-hover:scale-105"
+                        }`}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
+                      
+                      {product.category && (
+                        <span className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md text-cyan-400 text-[11px] font-semibold px-3 py-1 rounded-full border border-slate-700/80 tracking-wide">
+                          {product.category}
+                        </span>
+                      )}
+
+                      {/* 🔴 Sold Out vs Verified Badge */}
+                      {isSold ? (
+                        <span className="absolute top-3 right-3 bg-red-500/90 text-white text-[10px] font-bold px-3 py-1 rounded-full border border-red-400 shadow-lg tracking-wider uppercase flex items-center gap-1">
+                          <Tag className="w-3 h-3" />
+                          <span>Sold Out</span>
+                        </span>
+                      ) : (
                         <span className="absolute top-3 right-3 bg-emerald-500/20 backdrop-blur-md text-emerald-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1">
                           <ShieldCheck className="w-3 h-3" />
                           <span>Verified</span>
                         </span>
-                      </div>
-                    </Link>
+                      )}
+                    </div>
 
                     {/* Title & Description */}
-                    <Link href={`/products/${productId}`}>
-                      <h3 className="text-lg font-bold text-slate-100 group-hover:text-cyan-400 transition-colors line-clamp-1 cursor-pointer">
-                        {title}
-                      </h3>
-                    </Link>
+                    <h3 className={`text-lg font-bold transition-colors line-clamp-1 ${
+                      isSold ? "text-slate-400" : "text-slate-100 group-hover:text-cyan-400"
+                    }`}>
+                      {title}
+                    </h3>
+
                     <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
                       {product.description || "Certified pre-owned product in great condition. Inspected for quality."}
                     </p>
                   </div>
 
-                  {/* Pricing & Single Action Button */}
+                  {/* Pricing & Action Button */}
                   <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
                     <div>
                       <span className="text-[11px] text-slate-500 font-medium block">Price</span>
                       <div className="flex items-baseline gap-2">
-                        <p className="text-2xl font-black text-emerald-400">৳{currentPrice}</p>
-                        {originalPrice > currentPrice && (
+                        <p className={`text-2xl font-black ${isSold ? "text-slate-500 line-through" : "text-emerald-400"}`}>
+                          ৳{currentPrice}
+                        </p>
+                        {originalPrice > currentPrice && !isSold && (
                           <span className="text-xs text-slate-500 line-through">
                             ৳{originalPrice}
                           </span>
@@ -327,17 +346,26 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    {/* Full Interactive Details Button */}
-                    <Link href={`/products/${productId}`}>
-                      <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        className="bg-gradient-to-r from-slate-800 to-slate-800 hover:from-cyan-500 hover:to-emerald-500 text-slate-200 hover:text-slate-950 text-xs font-bold px-5 py-3 rounded-xl border border-slate-700 hover:border-transparent transition-all duration-300 flex items-center space-x-1.5 shadow-md cursor-pointer"
+                    {/* 🔴 Conditional Action Button */}
+                    {isSold ? (
+                      <button
+                        disabled
+                        className="bg-slate-800/50 text-slate-500 text-xs font-bold px-5 py-3 rounded-xl border border-slate-800 cursor-not-allowed flex items-center space-x-1.5"
                       >
-                        <span>View Details</span>
-                        <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                      </motion.button>
-                    </Link>
+                        <span>Out of Stock</span>
+                      </button>
+                    ) : (
+                      <Link href={`/products/${productId}`}>
+                        <motion.button
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                          className="bg-gradient-to-r from-slate-800 to-slate-800 hover:from-cyan-500 hover:to-emerald-500 text-slate-200 hover:text-slate-950 text-xs font-bold px-5 py-3 rounded-xl border border-slate-700 hover:border-transparent transition-all duration-300 flex items-center space-x-1.5 shadow-md cursor-pointer"
+                        >
+                          <span>View Details</span>
+                          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                        </motion.button>
+                      </Link>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -458,7 +486,7 @@ export default function HomePage() {
                 <Users className="w-6 h-6" />
               </div>
               <h3 className="text-3xl font-black text-white">{stats.totalBuyers}+</h3>
-              <p className="text-xs text-slate-400 mt-1">Active Buyers</p>
+              <p className="text-xs text-slate-[#94a3b8] mt-1">Active Buyers</p>
             </motion.div>
 
             <motion.div variants={fadeInUp} className="flex flex-col items-center">
@@ -489,7 +517,7 @@ export default function HomePage() {
             <h2 className="text-2xl sm:text-3xl font-black text-[#ffffff] leading-tight">
               Reduce E-Waste & Protect The Planet Through Re-Use
             </h2>
-            <p className="text-slate-400 text-sm mt-3 leading-relaxed">
+            <p className="text-[#94a3b8] text-sm mt-3 leading-relaxed">
               Every pre-owned item bought or sold prevents e-waste, lowers carbon emissions, and extends the lifespan of valuable resources. Make an impact with every deal.
             </p>
           </div>

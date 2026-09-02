@@ -6,6 +6,9 @@ import { AuthProvider } from "@/context/AuthContext";
 export const metadata = {
   title: "PreOwned | Pre-Owned Marketplace",
   description: "Buy and sell second-hand products easily.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }) {

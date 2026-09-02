@@ -23,7 +23,7 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-white tracking-wider uppercase mb-4">Support</h4>
             <p className="text-sm text-gray-400">Have questions? Contact our 24/7 support team.</p>
-            <p className="text-sm text-blue-400 font-semibold mt-2"><a href="https://www.facebook.com/arafatCodes">support@preowned-market.com</a></p>
+            <p className="text-sm text-blue-400 font-semibold mt-2"><a href="https://www.facebook.com/arafatCodes" target="_blank">support@preowned-market.com</a></p>
           </div>
         </div>
         <div className="mt-12 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">

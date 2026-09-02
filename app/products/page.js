@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ShieldCheck, Search, ArrowUpDown, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { ShieldCheck, Search, ArrowUpDown, ChevronLeft, ChevronRight, Eye, AlertCircle } from "lucide-react";
 import api from "@/utils/api"; 
 import { useAuth } from "@/context/AuthContext"; 
 
@@ -11,20 +11,20 @@ export default function ProductsPage() {
   const router = useRouter(); 
   const { user } = useAuth(); 
   
-  // ⚙️ কোয়েরি ও ফিল্টার স্টেটস
+  // Filter and pagination states
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   
-  // 📦 ডাটা ও লোডিং স্টেটস
+  // Products and loading states
   const [products, setProducts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
   const itemsPerPage = 4; 
 
-  // 🔄 সার্ভার থেকে ডাটা ফেচ করার মেকানিজম
+  // Fetch products with search, filter, and pagination support
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
@@ -44,12 +44,13 @@ export default function ProductsPage() {
           setTotalPages(response.data.totalPages || 1);
         }
       } catch (error) {
-        console.error("Error fetching data from MongoDB:", error);
+        console.error("Failed to load products:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
+    // Debounce search input to reduce API requests
     const delayDebounceFn = setTimeout(() => {
       fetchProducts();
     }, 400);
@@ -57,15 +58,18 @@ export default function ProductsPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [currentPage, searchQuery, selectedCategory, sortOrder]);
 
-  // 💳 বুক নাউ বাটনে ক্লিক করলে পেমেন্ট পেজে রিডাইরেক্ট করার লজিক
+  // Handle product booking
   const handleBookNow = (product) => {
+    // Stop booking if item is sold
+    if (product.status === "sold" || product.isSold) return;
+
+    // Require login before booking
     if (!user) {
-      alert("Please log in first to book a product!");
+      alert("Please log in to book this product!");
       router.push("/login"); 
       return;
     }
 
-    // পেমেন্ট পেজে আইডি সহ পাঠাবে
     router.push(`/dashboard/payment/${product._id}`);
   };
 
@@ -73,20 +77,20 @@ export default function ProductsPage() {
     <div className="bg-[#0f172a] text-slate-100 min-h-screen font-sans py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         
-        {/* HEADER */}
+        {/* Header section */}
         <div className="text-center max-w-2xl mx-auto mb-10">
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-500 bg-clip-text text-transparent">
             Explore Marketplace
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-2">
-            Real-time synchronization powered by MongoDB Atlas & Express Server production cluster.
+            Discover verified pre-owned products at the best prices.
           </p>
         </div>
 
-        {/* SEARCH, SORT & FILTER PANEL */}
+        {/* Search & Sort options */}
         <div className="bg-[#1e293b]/40 border border-slate-800 p-4 rounded-3xl backdrop-blur-md mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
           
-          {/* সার্চ ফিল্ড */}
+          {/* Search bar */}
           <div className="relative w-full md:w-80">
             <input 
               type="text"
@@ -98,7 +102,7 @@ export default function ProductsPage() {
             <Search className="absolute left-3.5 top-3.5 h-3.5 w-3.5 text-slate-500" />
           </div>
 
-          {/* সর্টিং ড্রপডাউন */}
+          {/* Sort dropdown */}
           <div className="relative w-full md:w-56 flex items-center gap-2">
             <ArrowUpDown className="h-4 w-4 text-cyan-500 flex-shrink-0" />
             <select 
@@ -113,7 +117,7 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* CATEGORY TABS */}
+        {/* Category filters */}
         <div className="flex flex-wrap justify-center items-center gap-2.5 mb-10 bg-slate-900/30 p-1.5 rounded-2xl border border-slate-800/60 w-max mx-auto">
           {[
             { label: "All Items", value: "" },
@@ -131,7 +135,7 @@ export default function ProductsPage() {
           ))}
         </div>
 
-        {/* PRODUCTS RENDER & SKELETON LOADER */}
+        {/* Products list & skeleton loader */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {[1, 2, 3, 4].map((i) => (
@@ -144,75 +148,111 @@ export default function ProductsPage() {
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-16 bg-slate-900/20 border border-slate-800 rounded-3xl text-slate-500 text-sm">
-            No live products found inside MongoDB cluster right now.
+            No products found matching your criteria.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {products.map((product) => (
-              <motion.div
-                key={product._id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-[#1e293b]/40 border border-slate-800/80 rounded-3xl overflow-hidden backdrop-blur-md flex flex-col group hover:border-slate-700 transition-all"
-              >
-                {/* Image linked to Details */}
-                <Link href={`/products/${product._id}`} className="h-52 bg-slate-900 overflow-hidden relative block">
-                  <img 
-                    src={product.images?.[0] || product.image || "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?q=80&w=600"} 
-                    alt={product.title} 
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
-                  />
-                  <span className="absolute bottom-3 left-3 text-[10px] uppercase font-extrabold bg-slate-900/80 text-cyan-400 border border-slate-700 px-2 rounded-md z-10">
-                    {product.condition || "Good"}
-                  </span>
-                </Link>
+            {products.map((product) => {
+              const isSold = product.status === "sold" || product.isSold;
+              const imgUrl = product.images?.[0] || product.image || "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?q=80&w=600";
 
-                <div className="p-5 flex flex-col flex-grow justify-between">
-                  <div>
-                    <span className="text-[9px] text-[#06b6d4] font-black uppercase tracking-widest block mb-1">{product.category}</span>
-                    
-                    {/* Title linked to Details */}
-                    <Link href={`/products/${product._id}`}>
-                      <h3 className="text-base font-bold text-slate-100 truncate hover:text-cyan-400 transition-colors">
-                        {product.title}
-                      </h3>
-                    </Link>
-                    
-                    <p className="text-[11px] text-slate-400 mt-0.5 truncate">Seller: {product.sellerInfo?.name || "Verified Seller"}</p>
-                  </div>
+              return (
+                <motion.div
+                  key={product._id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-[#1e293b]/40 border border-slate-800/80 rounded-3xl overflow-hidden backdrop-blur-md flex flex-col group hover:border-slate-700 transition-all"
+                >
+                  {/* Product Thumbnail */}
+                  <Link href={`/products/${product._id}`} className="h-52 bg-slate-950 overflow-hidden relative block">
+                    {/* Blurred backdrop image */}
+                    <img 
+                      src={imgUrl} 
+                      alt="" 
+                      aria-hidden="true"
+                      className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-30 brightness-75" 
+                    />
 
-                  <div className="mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between gap-2">
+                    {/* Main image */}
+                    <img 
+                      src={imgUrl} 
+                      alt={product.title} 
+                      className={`relative z-10 w-full h-full object-contain p-2 transition-all duration-500 ${
+                        isSold ? "grayscale opacity-60" : "group-hover:scale-105"
+                      }`} 
+                    />
+
+                    {/* Condition badge */}
+                    <span className="absolute bottom-3 left-3 text-[10px] uppercase font-extrabold bg-slate-900/90 text-cyan-400 border border-slate-700/80 px-2 py-0.5 rounded-md z-20 backdrop-blur-md">
+                      {product.condition || "Good"}
+                    </span>
+
+                    {/* Sold Out badge */}
+                    {isSold && (
+                      <span className="absolute top-3 right-3 text-[10px] uppercase font-black bg-rose-600/90 text-white px-3 py-1 rounded-full shadow-lg z-20 backdrop-blur-md border border-rose-500/50">
+                        Sold Out
+                      </span>
+                    )}
+                  </Link>
+
+                  <div className="p-5 flex flex-col flex-grow justify-between">
                     <div>
-                      <p className="text-base font-black text-emerald-400">৳{(product.price || product.resalePrice || 0).toLocaleString()}</p>
+                      <span className="text-[9px] text-[#06b6d4] font-black uppercase tracking-widest block mb-1">{product.category}</span>
+                      
+                      <Link href={`/products/${product._id}`}>
+                        <h3 className="text-base font-bold text-slate-100 truncate hover:text-cyan-400 transition-colors">
+                          {product.title}
+                        </h3>
+                      </Link>
+                      
+                      <p className="text-[11px] text-slate-400 mt-0.5 truncate">Seller: {product.sellerInfo?.name || "Verified Seller"}</p>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {/* Details Page Link Button */}
-                      <Link 
-                        href={`/products/${product._id}`}
-                        className="bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold p-2.5 rounded-xl border border-slate-800 transition-all"
-                        title="View Details"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </Link>
+                    <div className="mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between gap-2">
+                      <div>
+                        <p className={`text-base font-black ${isSold ? "text-slate-500 line-through" : "text-emerald-400"}`}>
+                          ৳{(product.price || product.resalePrice || 0).toLocaleString()}
+                        </p>
+                      </div>
 
-                      {/* Book Now Action Button */}
-                      <button 
-                        onClick={() => handleBookNow(product)} 
-                        className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all cursor-pointer flex items-center space-x-1"
-                      >
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        <span>Book Now</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {/* View Details button */}
+                        <Link 
+                          href={`/products/${product._id}`}
+                          className="bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold p-2.5 rounded-xl border border-slate-800 transition-all"
+                          title="View Details"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Link>
+
+                        {/* Booking action button */}
+                        {isSold ? (
+                          <button 
+                            disabled 
+                            className="bg-slate-900 text-slate-500 text-xs font-bold px-3 py-2 rounded-xl border border-slate-800 cursor-not-allowed flex items-center space-x-1"
+                          >
+                            <AlertCircle className="h-3.5 w-3.5" />
+                            <span>Sold Out</span>
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleBookNow(product)} 
+                            className="bg-slate-800 hover:bg-[#06b6d4] text-slate-300 hover:text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-700 hover:border-[#06b6d4] transition-all cursor-pointer flex items-center space-x-1"
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            <span>Book Now</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         )}
 
-        {/* PAGINATION CONTROLS */}
+        {/* Pagination navigation */}
         {!isLoading && totalPages > 1 && (
           <div className="flex justify-center items-center gap-4 mt-12 border-t border-slate-800/50 pt-6">
             <button 

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="100%" height="100%">
+  <!-- Background Container -->
+  <rect width="64" height="64" rx="16" fill="#0f172a"/>
+  
+  <!-- Outer Cyan Glowing Ring -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="none" stroke="#06b6d4" stroke-width="2" stroke-opacity="0.4"/>
+
+  <!-- Shopping Bag Handles -->
+  <path d="M24 24V18C24 13.5817 27.5817 10 32 10C36.4183 10 40 13.5817 40 18V24" 
+        fill="none" 
+        stroke="#06b6d4" 
+        stroke-width="3.5" 
+        stroke-linecap="round"/>
+
+  <!-- Shopping Bag Body -->
+  <path d="M16 22H48L44.5 50H19.5L16 22Z" 
+        fill="#06b6d4" 
+        fill-opacity="0.15" 
+        stroke="#06b6d4" 
+        stroke-width="3.5" 
+        stroke-linejoin="round"/>
+
+  <!-- Inner Badge Accent -->
+  <circle cx="32" cy="35" r="4" fill="#06b6d4"/>
+</svg>

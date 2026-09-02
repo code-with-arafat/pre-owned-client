@@ -156,13 +156,13 @@ export default function ProductsPage() {
                 className="bg-[#1e293b]/40 border border-slate-800/80 rounded-3xl overflow-hidden backdrop-blur-md flex flex-col group hover:border-slate-700 transition-all"
               >
                 {/* Image linked to Details */}
-                <Link href={`/products/${product._id}`} className="h-48 bg-slate-900 overflow-hidden relative block">
+                <Link href={`/products/${product._id}`} className="h-52 bg-slate-900 overflow-hidden relative block">
                   <img 
                     src={product.images?.[0] || product.image || "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?q=80&w=600"} 
                     alt={product.title} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
                   />
-                  <span className="absolute bottom-3 left-3 text-[10px] uppercase font-extrabold bg-slate-900/80 text-cyan-400 border border-slate-700 px-2 rounded-md">
+                  <span className="absolute bottom-3 left-3 text-[10px] uppercase font-extrabold bg-slate-900/80 text-cyan-400 border border-slate-700 px-2 rounded-md z-10">
                     {product.condition || "Good"}
                   </span>
                 </Link>
